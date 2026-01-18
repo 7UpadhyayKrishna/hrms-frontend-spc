@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, FileText, CreditCard, Building2, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import axios from 'axios';
+import { config } from '../config/api.config';
 
 const CandidateDocuments = () => {
   const [step, setStep] = useState('login'); // 'login' or 'upload'
@@ -35,7 +36,7 @@ const CandidateDocuments = () => {
 
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/candidate-documents/public/validate`,
+        `${config.apiBaseUrl}/candidate-documents/public/validate`,
         { candidateCode: candidateCode.trim() }
       );
 
@@ -113,7 +114,7 @@ const CandidateDocuments = () => {
       }));
 
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/candidate-documents/public/submit`,
+        `${config.apiBaseUrl}/candidate-documents/public/submit`,
         submitData,
         {
           headers: {

@@ -5,6 +5,7 @@ import { Mail, Lock, Eye, EyeOff, Building2, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
+import { config } from '../config/api.config';
 
 const CompanyLogin = () => {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ const CompanyLogin = () => {
         }
         
         // If not in localStorage, fetch from API
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/companies`);
+        const response = await axios.get(`${config.apiBaseUrl}/auth/companies`);
         if (response.data.success) {
           const company = response.data.data.find(c => 
             c.companyName.toLowerCase().replace(/\s+/g, '-') === companySlug

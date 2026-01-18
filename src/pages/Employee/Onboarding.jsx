@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
+import { config } from '../../config/api.config';
 
 // New comprehensive onboarding status labels
 const statusLabels = {
@@ -889,7 +890,7 @@ const OnboardingDetailsModal = ({ onboarding, onClose, verifyingDoc, onAcceptDoc
   const getDocumentHref = (url) => {
     if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    const backendBaseUrl = import.meta.env.VITE_API_URL || '';
+    const backendBaseUrl = config.apiBaseUrl.replace('/api', '');
     if (url.startsWith('/uploads/')) return `${backendBaseUrl}${url}`;
     if (url.startsWith('/')) return url;
     return `${backendBaseUrl}/uploads/${url}`;
