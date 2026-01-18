@@ -20,8 +20,7 @@
   }
 
   * {
-    @apply border-border;
-    transition: background-color var(--theme-transition), 
+    transition: background-color var(--theme-transition),
                 border-color var(--theme-transition),
                 color var(--theme-transition);
   }
@@ -152,7 +151,7 @@
   }
   
   .badge-default {
-    @apply bg-dark-800 text-gray-400 border border-dark-700;
+    @apply bg-gray-800 text-gray-400 border border-gray-700;
   }
 
   /* Theme-aware utility classes */
