@@ -8,14 +8,31 @@ import {
   UserPlus,
   Search,
   X,
+  FileText,
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const location = useLocation();
   const { user } = useAuth();
+
+  // 🚨 PERMANENT ROLE FIX 🚨
+  // Normalize admin role to company_admin (should be fixed in AuthContext, but double-check here)
+  let normalizedUser = user;
+  if (user && user.role === 'admin' && (user.email?.includes('admin') || user.email?.includes('@spc') || user.email?.includes('@company'))) {
+    console.log('🚨 SIDEBAR: Detected wrong role, should be fixed in AuthContext');
+    normalizedUser = { ...user, role: 'company_admin' };
+    // Update localStorage if not already fixed
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    if (storedUser.role === 'admin') {
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
+    }
+  }
   
-  const isAdmin = user?.role === 'admin' || user?.role === 'company_admin';
-  const isHR = user?.role === 'hr' || user?.role === 'company_admin';
+  // Use normalized user for all checks
+  const effectiveUser = normalizedUser || user;
+
+  const isAdmin = effectiveUser?.role === 'admin' || effectiveUser?.role === 'company_admin';
+  const isHR = effectiveUser?.role === 'hr' || effectiveUser?.role === 'company_admin';
 
   const isActive = (path) => location.pathname === path;
 
@@ -37,6 +54,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       label: 'Candidate Pool',
       icon: Users,
       path: '/employee/hr/candidate-pool'
+    },
+    {
+      key: 'resume-parser',
+      label: 'Resume Parser',
+      icon: FileText,
+      path: '/employee/hr/resume-parser'
     },
     {
       key: 'resume-search',
@@ -61,24 +84,39 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     }
   ];
 
-  // Company admin gets access to admin features + selected HR features (view-only for some)
-  console.log('🔍 SIDEBAR DEBUG:', {
-    userRole: user?.role,
+  // 🚨 COMPREHENSIVE SIDEBAR DEBUGGING 🚨
+  const debugInfo = {
+    timestamp: new Date().toISOString(),
+    user: effectiveUser,
+    userRole: effectiveUser?.role,
+    userEmail: effectiveUser?.email,
     isAdmin,
     isHR,
-    menuType: user?.role === 'company_admin' ? 'ADMIN_PLUS_VIEW_HR' : isHR ? 'HR_ONLY' : isAdmin ? 'ADMIN_ONLY' : 'NO_ACCESS'
-  });
+    isAuthenticated: !!effectiveUser,
+    localStorageUser: JSON.parse(localStorage.getItem('user') || 'null'),
+    localStorageToken: !!localStorage.getItem('token'),
+    localStorageUserRole: JSON.parse(localStorage.getItem('user') || '{}')?.role,
+    adminMenuItemsCount: adminMenuItems.length,
+    hrMenuItemsCount: hrMenuItems.length,
+    menuType: effectiveUser?.role === 'company_admin' ? 'ADMIN_PLUS_HR_FULL' : isHR ? 'HR_ONLY' : isAdmin ? 'ADMIN_ONLY' : 'NO_ACCESS',
+    currentPath: location.pathname
+  };
+
+  console.log('🚨 SIDEBAR DEBUG START 🚨');
+  console.table(debugInfo);
+  console.log('Admin menu items:', adminMenuItems.map(item => `${item.key}: ${item.label}`));
+  console.log('HR menu items:', hrMenuItems.map(item => `${item.key}: ${item.label}`));
 
   let menuItems = [];
-  if (user?.role === 'company_admin') {
-    // Admin gets admin menu + HR management features
+  if (effectiveUser?.role === 'company_admin') {
+    console.log('✅ CONDITION MET: effectiveUser?.role === "company_admin"');
     menuItems = [
       ...adminMenuItems,
       {
         key: 'hr-management',
         label: 'HR Management',
         icon: Users,
-        path: '/admin/hr-management'
+        path: '/hr-management'
       },
       {
         key: 'onboarding',
@@ -87,16 +125,29 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         path: '/employees/onboarding'
       }
     ];
+    console.log('📋 Company Admin final menu items:', menuItems.map(item => `${item.key}: ${item.label}`));
   } else if (isHR) {
+    console.log('👥 CONDITION MET: isHR = true');
     menuItems = hrMenuItems;
   } else if (isAdmin) {
+    console.log('🛡️ CONDITION MET: isAdmin = true');
     menuItems = adminMenuItems;
+  } else {
+    console.log('❌ NO CONDITION MET - showing empty menu');
+    menuItems = [];
   }
+
+  console.log('🎯 FINAL RESULT:', {
+    menuItemsCount: menuItems.length,
+    menuItems: menuItems.map(item => item.label),
+    expectedForCompanyAdmin: ['Dashboard', 'Candidates', 'HR Management', 'Onboarding (View)']
+  });
+  console.log('🚨 SIDEBAR DEBUG END 🚨');
 
   // Log everything for debugging
   console.log('🔍 SIDEBAR DEBUG:', {
-    userRole: user?.role,
-    user: user,
+    userRole: effectiveUser?.role,
+    user: effectiveUser,
     isAdmin,
     isHR,
     menuItemsCount: menuItems.length,
@@ -134,6 +185,18 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           >
             <X size={20} />
           </button>
+        </div>
+
+        {/* DEBUG INFO - Remove in production */}
+        <div className="mx-3 mb-4 p-3 bg-red-600 text-white text-xs font-mono rounded-lg border border-red-700">
+          <div className="font-bold mb-2">🔧 DEBUG MODE</div>
+          <div>Role: {effectiveUser?.role || 'none'}</div>
+          <div>Email: {effectiveUser?.email || 'none'}</div>
+          <div>Menu Items: {menuItems.length}</div>
+          <div>Path: {location.pathname}</div>
+          <div className="mt-2 text-xs opacity-75">
+            Expected for company_admin: 4 items
+          </div>
         </div>
 
         {/* Navigation */}

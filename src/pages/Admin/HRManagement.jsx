@@ -23,14 +23,25 @@ const HRManagement = () => {
     try {
       setLoading(true);
       const response = await api.get('/user/all');
-      // Filter to show only HR and admin users for management
-      const hrAndAdminUsers = response.data.data.filter(user =>
-        user.role === 'hr' || user.role === 'admin' || user.role === 'company_admin'
-      );
-      setHrUsers(hrAndAdminUsers);
+      console.log('HR Users API Response:', response.data);
+      
+      // Check if response has data
+      if (response.data && response.data.data) {
+        // Filter to show only HR and admin users for management
+        const hrAndAdminUsers = response.data.data.filter(user =>
+          user.role === 'hr' || user.role === 'admin' || user.role === 'company_admin'
+        );
+        console.log('Filtered HR Users:', hrAndAdminUsers);
+        setHrUsers(hrAndAdminUsers);
+      } else {
+        console.warn('No data in response:', response.data);
+        setHrUsers([]);
+      }
     } catch (error) {
       console.error('Error fetching HR users:', error);
-      toast.error('Failed to load HR users');
+      console.error('Error details:', error.response?.data);
+      toast.error(error.response?.data?.message || 'Failed to load HR users');
+      setHrUsers([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -71,13 +82,15 @@ const HRManagement = () => {
     );
   };
 
+  console.log('HRManagement Component Rendering:', { loading, hrUsersCount: hrUsers.length });
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">HR Management</h1>
-          <p className="text-gray-600 mt-1">Manage HR users and administrators</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">HR Management</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Manage HR users and administrators</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -163,11 +176,26 @@ const HRManagement = () => {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         {loading ? (
           <div className="p-8 text-center">
             <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading HR users...</p>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading HR users...</p>
+          </div>
+        ) : filteredUsers.length === 0 && hrUsers.length === 0 ? (
+          <div className="p-8 text-center">
+            <Users className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No HR users found</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Get started by adding your first HR user.
+            </p>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="mt-4 btn-primary"
+            >
+              <Plus size={16} className="inline mr-2" />
+              Add HR User
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -390,7 +418,20 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
       const response = await api.post('/user/create', formData);
 
       if (response.data.success) {
-        toast.success('HR user created successfully! Credentials sent via email.');
+        // Show appropriate message based on email status
+        if (response.data.emailSent) {
+          toast.success('HR user created successfully! Welcome email with credentials sent.');
+        } else if (response.data.emailError) {
+          toast.success('HR user created successfully!', {
+            duration: 3000
+          });
+          toast.error(`Email could not be sent: ${response.data.emailError}. Temporary password: ${response.data.tempPassword}`, {
+            duration: 8000
+          });
+        } else {
+          toast.success('HR user created successfully!');
+        }
+        
         setFormData({
           email: '',
           firstName: '',

@@ -23,7 +23,16 @@ export const AuthProvider = ({ children }) => {
 
       if (storedToken && storedUser) {
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        let parsedUser = JSON.parse(storedUser);
+        
+        // 🚨 PERMANENT ROLE FIX: Normalize admin role to company_admin
+        if (parsedUser && parsedUser.role === 'admin' && (parsedUser.email?.includes('admin') || parsedUser.email?.includes('@spc') || parsedUser.email?.includes('@company'))) {
+          console.log('🚨 FIXING ROLE: admin → company_admin for', parsedUser.email);
+          parsedUser = { ...parsedUser, role: 'company_admin' };
+          localStorage.setItem('user', JSON.stringify(parsedUser));
+        }
+        
+        setUser(parsedUser);
       }
       setLoading(false);
     };
@@ -40,16 +49,23 @@ export const AuthProvider = ({ children }) => {
       });
       const { token, user } = response.data.data;
 
+      // 🚨 PERMANENT ROLE FIX: Normalize admin role to company_admin
+      let normalizedUser = user;
+      if (user && user.role === 'admin' && (user.email?.includes('admin') || user.email?.includes('@spc') || user.email?.includes('@company'))) {
+        console.log('🚨 FIXING ROLE: admin → company_admin for', user.email);
+        normalizedUser = { ...user, role: 'company_admin' };
+      }
+
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
       
       // Apply user's theme preference
-      if (user.themePreference) {
-        localStorage.setItem('theme', user.themePreference);
+      if (normalizedUser.themePreference) {
+        localStorage.setItem('theme', normalizedUser.themePreference);
       }
       
       setToken(token);
-      setUser(user);
+      setUser(normalizedUser);
 
       return { success: true };
     } catch (error) {
