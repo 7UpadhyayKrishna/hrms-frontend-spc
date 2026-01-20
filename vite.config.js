@@ -7,6 +7,7 @@ export default defineConfig({
     // Enable the new JSX transform
     jsxRuntime: 'automatic'
   })],
+  base: '/', // Ensure base path is set correctly for deployment
   server: {
     port: 8080,
     proxy: {
@@ -20,13 +21,18 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    assetsDir: 'assets', // Ensure assets are in assets folder
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
           router: ['react-router-dom'],
           ui: ['lucide-react', 'react-hot-toast']
-        }
+        },
+        // Ensure consistent asset naming
+        assetFileNames: 'assets/[name]-[hash][extname]',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js'
       }
     }
   }
