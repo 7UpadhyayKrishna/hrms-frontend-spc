@@ -50,7 +50,6 @@ const ResumeParser = () => {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 300000, // 5 minutes timeout for resume extraction (can take time with chunked processing)
       });
 
       if (response.data.success) {
@@ -272,7 +271,7 @@ const ResumeParser = () => {
                     {uploading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Extracting candidate details... (this may take a few minutes)
+                        Extracting candidate details...
                       </>
                     ) : (
                       <>
