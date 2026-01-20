@@ -25,7 +25,7 @@ This document details all frontend changes made to implement the AI-driven candi
 
 ##### **Compact View** (for applicant cards)
 - Match score with progress bar
-- Overall fit badge (Excellent/Good/Average/Poor)
+- Overall fit badge (Excellent/Goovd/Average/Poor)
 - Top 2 key highlights
 - Skills match percentage
 - Expandable to full view
