@@ -198,11 +198,10 @@ const Onboarding = () => {
 
   const sendOffer = async (id, offerDetails) => {
     try {
-      // Use current origin to ensure correct URL in all environments
-      const currentUrl = window.location.origin;
       await api.post(`/onboarding/${id}/send-offer`, {
         ...offerDetails,
-        frontendUrl: currentUrl
+        frontendUrl: config.frontendUrl,
+        apiBaseUrl: config.apiBaseUrl
       });
       toast.success('Offer sent successfully');
       fetchList();
@@ -237,13 +236,9 @@ const Onboarding = () => {
 
   const requestDocuments = async (id) => {
     try {
-      const currentUrl = window.location.origin; 
-      const uploadUrl = `${currentUrl}/public/upload-documents`;
-
       const res = await api.post(`/onboarding/${id}/request-documents`, {
-        frontendUrl: currentUrl,
-        uploadBaseUrl: uploadUrl,
-        // Don't pass apiBaseUrl as it might contain placeholders
+        frontendUrl: config.frontendUrl,
+        apiBaseUrl: config.apiBaseUrl
       });
       toast.success(`Document request email sent to ${res.data.data.sentTo}`);
     } catch (e) {

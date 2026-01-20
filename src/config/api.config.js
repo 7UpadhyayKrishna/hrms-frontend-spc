@@ -81,7 +81,7 @@ export const config = {
   frontendUrl: getFrontendUrl(currentEnv),
   
   // Timeout settings
-  apiTimeout: 300000, // 5 minutes (increased for long-running operations like resume parsing)
+  apiTimeout: 30000, // 30 seconds
   
   // Feature flags (can be controlled via env variables)
   features: {
@@ -90,6 +90,14 @@ export const config = {
   }
 };
 
-// Configuration logging removed for production
+// Log configuration in development
+if (config.isDevelopment) {
+  console.log('🔧 API Configuration:', {
+    environment: config.env,
+    apiBaseUrl: config.apiBaseUrl,
+    frontendUrl: config.frontendUrl,
+    note: 'Using Vite proxy - requests to /api are forwarded to http://localhost:5001'
+  });
+}
 
 export default config;

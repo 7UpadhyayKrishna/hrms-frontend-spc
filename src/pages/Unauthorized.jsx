@@ -6,7 +6,13 @@ const Unauthorized = () => {
   const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    // Debug logging removed for production
+    console.log('🚫 UNAUTHORIZED PAGE DEBUG:', {
+      isAuthenticated,
+      user: user,
+      userRole: user?.role,
+      localStorageUser: JSON.parse(localStorage.getItem('user') || 'null'),
+      localStorageToken: localStorage.getItem('token') ? 'present' : 'missing'
+    });
   }, [user, isAuthenticated]);
 
   return (

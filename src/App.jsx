@@ -31,7 +31,6 @@ import ViewApplicants from './pages/ViewApplicants';
 import CandidateTimeline from './pages/CandidateTimeline';
 import Onboarding from './pages/Employee/Onboarding';
 import ResumeSearch from './pages/HRDashboard/ResumeSearch';
-import ResumeParser from './pages/HRDashboard/ResumeParser';
 import HRCandidatePool from './pages/HRDashboard/HRCandidatePool';
 
 function App() {
@@ -105,7 +104,6 @@ function App() {
           >
             <Route path="hr/candidate-pool" element={<HRCandidatePool />} />
             <Route path="hr/resume-search" element={<ResumeSearch />} />
-            <Route path="hr/resume-parser" element={<ResumeParser />} />
           </Route>
 
           <Route
