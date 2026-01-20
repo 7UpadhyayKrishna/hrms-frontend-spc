@@ -67,11 +67,12 @@ const CandidateTimeline = () => {
   const handleSendNotification = async (type, notes = '') => {
     try {
       setSendingNotification(true);
+      // Use current origin to ensure correct URL in all environments
+      const currentUrl = window.location.origin;
       await api.post(`/candidates/${candidateId}/notification`, {
         type,
         notes,
-        frontendUrl: config.frontendUrl,
-        apiBaseUrl: config.apiBaseUrl
+        frontendUrl: currentUrl
       });
       toast.success('Notification sent successfully');
       fetchCandidateData();
