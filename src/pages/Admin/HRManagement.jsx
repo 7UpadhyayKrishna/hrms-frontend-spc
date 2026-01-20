@@ -23,15 +23,13 @@ const HRManagement = () => {
     try {
       setLoading(true);
       const response = await api.get('/user/all');
-      console.log('HR Users API Response:', response.data);
-      
+
       // Check if response has data
       if (response.data && response.data.data) {
         // Filter to show only HR and admin users for management
         const hrAndAdminUsers = response.data.data.filter(user =>
           user.role === 'hr' || user.role === 'admin' || user.role === 'company_admin'
         );
-        console.log('Filtered HR Users:', hrAndAdminUsers);
         setHrUsers(hrAndAdminUsers);
       } else {
         console.warn('No data in response:', response.data);
@@ -64,6 +62,42 @@ const HRManagement = () => {
     }
   };
 
+  const handleDeleteUser = async (user) => {
+    if (!window.confirm(`Are you sure you want to remove ${user.firstName} ${user.lastName} (${user.email})? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      // Try different possible endpoints for user deletion
+      let deleteEndpoint = `/user/${user._id}`;
+
+      // For admin users, might need different endpoint
+      if (user.role === 'company_admin' || user.role === 'admin') {
+        deleteEndpoint = `/user/delete/${user._id}`;
+      }
+
+      await api.delete(deleteEndpoint);
+
+      toast.success('User removed successfully');
+      fetchHRUsers(); // Refresh the list
+    } catch (error) {
+      console.error('Error deleting user:', error);
+
+      // If the first endpoint fails, try an alternative
+      if (error.response?.status === 404 && deleteEndpoint === `/user/${user._id}`) {
+        try {
+          await api.delete(`/user/delete/${user._id}`);
+          toast.success('User removed successfully');
+          fetchHRUsers();
+        } catch (secondError) {
+          toast.error(secondError.response?.data?.message || 'Failed to remove user');
+        }
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to remove user');
+      }
+    }
+  };
+
   const getRoleBadge = (role) => {
     const roleConfig = {
       'hr': { label: 'HR', color: 'bg-blue-500', icon: Users },
@@ -82,10 +116,8 @@ const HRManagement = () => {
     );
   };
 
-  console.log('HRManagement Component Rendering:', { loading, hrUsersCount: hrUsers.length });
-
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -103,40 +135,40 @@ const HRManagement = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
+        <div className="bg-dark-800 p-4 rounded-lg border border-dark-700">
           <div className="flex items-center">
             <div className="p-2 bg-blue-500 rounded-lg">
               <Users className="h-6 w-6 text-white" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total HR Users</p>
-              <p className="text-2xl font-bold text-gray-900">{hrUsers.length}</p>
+              <p className="text-sm font-medium text-gray-400">Total HR Users</p>
+              <p className="text-2xl font-bold text-white">{hrUsers.length}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
+        <div className="bg-dark-800 p-4 rounded-lg border border-dark-700">
           <div className="flex items-center">
             <div className="p-2 bg-green-500 rounded-lg">
               <CheckCircle className="h-6 w-6 text-white" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Active Users</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-gray-400">Active Users</p>
+              <p className="text-2xl font-bold text-white">
                 {hrUsers.filter(user => user.isActive).length}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
+        <div className="bg-dark-800 p-4 rounded-lg border border-dark-700">
           <div className="flex items-center">
             <div className="p-2 bg-purple-500 rounded-lg">
               <Shield className="h-6 w-6 text-white" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Administrators</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-gray-400">Administrators</p>
+              <p className="text-2xl font-bold text-white">
                 {hrUsers.filter(user => user.role === 'admin' || user.role === 'company_admin').length}
               </p>
             </div>
@@ -145,7 +177,7 @@ const HRManagement = () => {
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200">
+      <div className="bg-dark-800 p-4 rounded-lg border border-dark-700">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -219,9 +251,9 @@ const HRManagement = () => {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-dark-800 divide-y divide-dark-700">
                 {filteredUsers.map((user) => (
-                  <tr key={user._id} className="hover:bg-gray-50">
+                  <tr key={user._id} className="hover:bg-dark-700">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
@@ -232,7 +264,7 @@ const HRManagement = () => {
                           </div>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-white">
                             {user.firstName} {user.lastName}
                           </div>
                           <div className="text-sm text-gray-500">{user.email}</div>
@@ -261,7 +293,7 @@ const HRManagement = () => {
                             setSelectedUser(user);
                             setShowDetailsModal(true);
                           }}
-                          className="text-blue-600 hover:text-blue-900 p-1"
+                          className="text-blue-400 hover:text-blue-300 p-1"
                           title="View Details"
                         >
                           <Eye size={16} />
@@ -270,12 +302,19 @@ const HRManagement = () => {
                           onClick={() => handleStatusChange(user._id, !user.isActive)}
                           className={`p-1 ${
                             user.isActive
-                              ? 'text-red-600 hover:text-red-900'
-                              : 'text-green-600 hover:text-green-900'
+                              ? 'text-red-400 hover:text-red-300'
+                              : 'text-green-400 hover:text-green-300'
                           }`}
                           title={user.isActive ? 'Deactivate' : 'Activate'}
                         >
                           {user.isActive ? <XCircle size={16} /> : <CheckCircle size={16} />}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user)}
+                          className="text-red-500 hover:text-red-400 p-1"
+                          title="Remove User"
+                        >
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>
@@ -287,7 +326,7 @@ const HRManagement = () => {
             {filteredUsers.length === 0 && (
               <div className="p-8 text-center">
                 <Users className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No HR users found</h3>
+                <h3 className="mt-2 text-sm font-medium text-white">No HR users found</h3>
                 <p className="mt-1 text-sm text-gray-500">
                   {searchTerm || filterStatus !== 'all'
                     ? 'Try adjusting your search or filters.'
@@ -303,12 +342,12 @@ const HRManagement = () => {
       {/* User Details Modal */}
       {showDetailsModal && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="bg-dark-800 rounded-lg p-6 max-w-md w-full mx-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium">User Details</h3>
+              <h3 className="text-lg font-medium text-white">User Details</h3>
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-300"
               >
                 <XCircle size={24} />
               </button>
@@ -316,13 +355,13 @@ const HRManagement = () => {
 
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
-                <div className="h-12 w-12 rounded-full bg-gray-300 flex items-center justify-center">
-                  <span className="text-lg font-medium text-gray-700">
+                <div className="h-12 w-12 rounded-full bg-gray-600 flex items-center justify-center">
+                  <span className="text-lg font-medium text-white">
                     {selectedUser.firstName?.[0]}{selectedUser.lastName?.[0]}
                   </span>
                 </div>
                 <div>
-                  <h4 className="text-lg font-medium">{selectedUser.firstName} {selectedUser.lastName}</h4>
+                  <h4 className="text-lg font-medium text-white">{selectedUser.firstName} {selectedUser.lastName}</h4>
                   {getRoleBadge(selectedUser.role)}
                 </div>
               </div>
@@ -330,24 +369,24 @@ const HRManagement = () => {
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <Mail size={16} className="text-gray-400" />
-                  <span>{selectedUser.email}</span>
+                  <span className="text-gray-300">{selectedUser.email}</span>
                 </div>
                 {selectedUser.phone && (
                   <div className="flex items-center space-x-2">
                     <Phone size={16} className="text-gray-400" />
-                    <span>{selectedUser.phone}</span>
+                    <span className="text-gray-300">{selectedUser.phone}</span>
                   </div>
                 )}
                 <div className="flex items-center space-x-2">
                   <Calendar size={16} className="text-gray-400" />
-                  <span>Joined {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : 'N/A'}</span>
+                  <span className="text-gray-300">Joined {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : 'N/A'}</span>
                 </div>
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">
                 <button
                   onClick={() => setShowDetailsModal(false)}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2 text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-700"
                 >
                   Close
                 </button>
@@ -472,7 +511,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
           <h3 className="text-lg font-medium">Add New HR User</h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-300"
           >
             <XCircle size={24} />
           </button>
@@ -592,7 +631,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-4 py-2 text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-700"
               disabled={loading}
             >
               Cancel

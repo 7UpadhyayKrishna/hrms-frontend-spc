@@ -90,14 +90,6 @@ export const config = {
   }
 };
 
-// Log configuration in development
-if (config.isDevelopment) {
-  console.log('🔧 API Configuration:', {
-    environment: config.env,
-    apiBaseUrl: config.apiBaseUrl,
-    frontendUrl: config.frontendUrl,
-    note: 'Using Vite proxy - requests to /api are forwarded to http://localhost:5001'
-  });
-}
+// Configuration logging removed for production
 
 export default config;

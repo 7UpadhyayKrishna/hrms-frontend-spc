@@ -237,8 +237,7 @@ const Onboarding = () => {
 
   const requestDocuments = async (id) => {
     try {
-      // Construct the document upload URL on the frontend to ensure it's correct
-      const currentUrl = window.location.origin; // Gets the current domain (e.g., https://yourapp.com)
+      const currentUrl = window.location.origin; 
       const uploadUrl = `${currentUrl}/public/upload-documents`;
 
       const res = await api.post(`/onboarding/${id}/request-documents`, {

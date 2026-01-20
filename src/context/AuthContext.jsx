@@ -25,9 +25,8 @@ export const AuthProvider = ({ children }) => {
         setToken(storedToken);
         let parsedUser = JSON.parse(storedUser);
         
-        // 🚨 PERMANENT ROLE FIX: Normalize admin role to company_admin
+        // PERMANENT ROLE FIX: Normalize admin role to company_admin
         if (parsedUser && parsedUser.role === 'admin' && (parsedUser.email?.includes('admin') || parsedUser.email?.includes('@spc') || parsedUser.email?.includes('@company'))) {
-          console.log('🚨 FIXING ROLE: admin → company_admin for', parsedUser.email);
           parsedUser = { ...parsedUser, role: 'company_admin' };
           localStorage.setItem('user', JSON.stringify(parsedUser));
         }
@@ -49,10 +48,9 @@ export const AuthProvider = ({ children }) => {
       });
       const { token, user } = response.data.data;
 
-      // 🚨 PERMANENT ROLE FIX: Normalize admin role to company_admin
+      // PERMANENT ROLE FIX: Normalize admin role to company_admin
       let normalizedUser = user;
       if (user && user.role === 'admin' && (user.email?.includes('admin') || user.email?.includes('@spc') || user.email?.includes('@company'))) {
-        console.log('🚨 FIXING ROLE: admin → company_admin for', user.email);
         normalizedUser = { ...user, role: 'company_admin' };
       }
 
