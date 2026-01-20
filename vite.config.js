@@ -8,8 +8,7 @@ export default defineConfig({
     jsxRuntime: 'automatic'
   })],
   server: {
-    port: 5173,
-    host: true,
+    port: 8080,
     proxy: {
       '/api': {
         target: 'http://localhost:5001',

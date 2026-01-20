@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import InterviewScheduleModal from '../components/InterviewScheduleModal';
 import InterviewFeedbackModal from '../components/InterviewFeedbackModal';
 import HRCallModal from '../components/HRCallModal';
+import { config } from '../config/api.config';
 
 const CandidateTimeline = () => {
   const { candidateId } = useParams();
@@ -22,6 +23,7 @@ const CandidateTimeline = () => {
   const [showHRCallModal, setShowHRCallModal] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState(null);
   const [sendingNotification, setSendingNotification] = useState(false);
+  const [skippedStages, setSkippedStages] = useState(new Set()); // Track manually skipped stages
 
   useEffect(() => {
     fetchCandidateData();
@@ -65,13 +67,100 @@ const CandidateTimeline = () => {
   const handleSendNotification = async (type, notes = '') => {
     try {
       setSendingNotification(true);
-      await api.post(`/candidates/${candidateId}/notification`, { type, notes });
+      await api.post(`/candidates/${candidateId}/notification`, {
+        type,
+        notes,
+        frontendUrl: config.frontendUrl,
+        apiBaseUrl: config.apiBaseUrl
+      });
       toast.success('Notification sent successfully');
       fetchCandidateData();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to send notification');
     } finally {
       setSendingNotification(false);
+    }
+  };
+
+  // Helper function to check if a stage was skipped
+  const isStageSkipped = (stageName) => {
+    // First check manually tracked skipped stages
+    if (skippedStages.has(stageName)) {
+      return true;
+    }
+
+    // Then check timeline activities for explicit skipped stage information
+    const isSkipped = timeline.timeline?.some(activity => {
+      // First check if this activity explicitly marks this stage as skipped
+      if (activity.skippedStage === stageName) {
+        return true;
+      }
+
+      // Fallback to string matching for backward compatibility
+      const action = (activity.action || '').toLowerCase();
+      const description = (activity.description || '').toLowerCase();
+      const reason = (activity.reason || '').toLowerCase();
+
+      // Check for skip indicators
+      const hasSkipIndicator = action.includes('skip') || description.includes('skip') || reason.includes('skip');
+
+      // Only use string matching for backward compatibility - be very specific
+      // Check if the description explicitly mentions skipping this specific stage
+      const explicitlyMentionsThisStage = description.includes(`skipped ${stageName}`) ||
+                                          reason.includes(`skipped ${stageName}`);
+
+      let hasStageMatch = false;
+
+      if (explicitlyMentionsThisStage) {
+        hasStageMatch = true;
+      } else {
+        // Fallback to keyword matching but be more restrictive
+        const stageKeywords = stageName.toLowerCase().split(' ');
+        hasStageMatch = stageKeywords.every(keyword =>
+          description.includes(keyword) || reason.includes(keyword)
+        );
+      }
+
+      const result = hasSkipIndicator && hasStageMatch;
+
+      return result;
+    });
+
+    return isSkipped;
+  };
+
+  // Helper function to check if a stage is accessible (completed OR previous stage was skipped)
+  const isStageAccessible = (stageName, previousStageName = null) => {
+    // If this stage itself is skipped, it's not accessible
+    if (isStageSkipped(stageName)) {
+      return false;
+    }
+
+    // If there's no previous stage requirement, stage is accessible
+    if (!previousStageName) {
+      return true;
+    }
+
+    // Stage is accessible if previous stage is either completed OR skipped
+    return isPreviousStageCompleted(stageName) || isStageSkipped(previousStageName);
+  };
+
+  // Helper function to check if previous stage conditions are met
+  const isPreviousStageCompleted = (currentStageName) => {
+    switch (currentStageName) {
+      case 'Interview Scheduling':
+        return timeline.notifications?.interviewEmail?.sent || timeline.notifications?.interviewCall?.completed;
+      case 'HR Call':
+        // If Interview Scheduling was skipped, HR Call is accessible without interviews
+        if (isStageSkipped('Interview Scheduling')) {
+          return true;
+        }
+        // Otherwise, require at least one interview to exist
+        return timeline.interviews?.length > 0;
+      case 'Onboarding':
+        return timeline.hrCall?.status === 'completed';
+      default:
+        return true;
     }
   };
 
@@ -154,97 +243,6 @@ const CandidateTimeline = () => {
         </div>
       </div>
 
-      {/* Flexible Stage Management */}
-      <div className="card">
-        <h2 className="text-xl font-bold text-white mb-4">Stage Management</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Current Stage
-            </label>
-            <div className="px-4 py-2 bg-dark-800 rounded-lg text-white">
-              {candidate.stage || timeline.stage || 'N/A'}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Move To Stage
-            </label>
-            <select
-              id="targetStage"
-              className="input-field w-full"
-              defaultValue=""
-            >
-              <option value="">Select target stage</option>
-              <option value="applied">Applied</option>
-              <option value="screening">Screening</option>
-              <option value="shortlisted">Shortlisted</option>
-              <option value="interview-scheduled">Interview Scheduled</option>
-              <option value="interview-completed">Interview Completed</option>
-              <option value="offer-extended">Offer Extended</option>
-              <option value="offer-accepted">Offer Accepted</option>
-              <option value="sent-to-onboarding">Sent to Onboarding</option>
-              <option value="joined">Joined</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </div>
-        </div>
-        <div className="mt-4 space-y-3">
-          <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-            <input
-              type="checkbox"
-              id="skipIntermediate"
-              className="w-4 h-4 text-primary-600 bg-dark-800 border-gray-700 rounded focus:ring-primary-600"
-            />
-            Skip intermediate stages
-          </label>
-          <div className="flex gap-3">
-            <button
-              onClick={async () => {
-                const targetStage = document.getElementById('targetStage').value;
-                const skipIntermediate = document.getElementById('skipIntermediate').checked;
-                if (!targetStage) {
-                  toast.error('Please select a target stage');
-                  return;
-                }
-                try {
-                  await api.post(`/candidates/${candidateId}/move-to-stage`, {
-                    targetStage,
-                    skipIntermediate,
-                    reason: 'Manual stage change via flexible workflow'
-                  });
-                  toast.success('Stage updated successfully');
-                  fetchCandidateData();
-                } catch (error) {
-                  toast.error(error.response?.data?.message || 'Failed to update stage');
-                }
-              }}
-              className="btn-primary"
-            >
-              Move to Stage
-            </button>
-            <button
-              onClick={async () => {
-                try {
-                  await api.post(`/candidates/${candidateId}/move-to-stage`, {
-                    directToOnboarding: true,
-                    skipIntermediate: true,
-                    reason: 'Direct move to onboarding'
-                  });
-                  toast.success('Candidate moved to onboarding');
-                  fetchCandidateData();
-                } catch (error) {
-                  toast.error(error.response?.data?.message || 'Failed to move to onboarding');
-                }
-              }}
-              className="btn-success"
-            >
-              Direct to Onboarding
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* All Applications History */}
       {candidateHistory && candidateHistory.applications && candidateHistory.applications.length > 1 && (
         <div className="card">
@@ -309,6 +307,7 @@ const CandidateTimeline = () => {
               title="Interview Notification"
               color="bg-blue-500"
               completed={timeline.notifications?.interviewEmail?.sent || timeline.notifications?.interviewCall?.completed}
+              skipped={isStageSkipped('Interview Notification')}
             >
               <div className="space-y-3">
                 {!timeline.notifications?.interviewEmail?.sent && !timeline.notifications?.interviewCall?.completed && (
@@ -319,27 +318,29 @@ const CandidateTimeline = () => {
                     </p>
                   </div>
                 )}
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => handleSendNotification('interviewEmail')}
-                    disabled={sendingNotification || timeline.notifications?.interviewEmail?.sent}
-                    className={`btn-sm ${timeline.notifications?.interviewEmail?.sent ? 'btn-success' : 'btn-primary'}`}
-                  >
-                    <Mail size={16} className="mr-2" />
-                    {timeline.notifications?.interviewEmail?.sent ? 'Email Sent' : 'Send Email'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      const notes = prompt('Add call notes:');
-                      if (notes !== null) handleSendNotification('interviewCall', notes);
-                    }}
-                    disabled={sendingNotification || timeline.notifications?.interviewCall?.completed}
-                    className={`btn-sm ${timeline.notifications?.interviewCall?.completed ? 'btn-success' : 'btn-outline'}`}
-                  >
-                    <Phone size={16} className="mr-2" />
-                    {timeline.notifications?.interviewCall?.completed ? 'Call Done' : 'Mark Call Done'}
-                  </button>
-                </div>
+                {!isStageSkipped('Interview Notification') && (
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => handleSendNotification('interviewEmail')}
+                      disabled={sendingNotification || timeline.notifications?.interviewEmail?.sent}
+                      className={`btn-sm ${timeline.notifications?.interviewEmail?.sent ? 'btn-success' : 'btn-primary'}`}
+                    >
+                      <Mail size={16} className="mr-2" />
+                      {timeline.notifications?.interviewEmail?.sent ? 'Email Sent' : 'Send Email'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        const notes = prompt('Add call notes:');
+                        if (notes !== null) handleSendNotification('interviewCall', notes);
+                      }}
+                      disabled={sendingNotification || timeline.notifications?.interviewCall?.completed}
+                      className={`btn-sm ${timeline.notifications?.interviewCall?.completed ? 'btn-success' : 'btn-outline'}`}
+                    >
+                      <Phone size={16} className="mr-2" />
+                      {timeline.notifications?.interviewCall?.completed ? 'Call Done' : 'Mark Call Done'}
+                    </button>
+                  </div>
+                )}
                 {timeline.notifications?.interviewEmail?.sent && timeline.notifications.interviewEmail.sentAt && (
                   <p className="text-sm text-gray-400">
                     Email sent on {new Date(timeline.notifications.interviewEmail.sentAt).toLocaleString()}
@@ -351,28 +352,34 @@ const CandidateTimeline = () => {
                     {timeline.notifications.interviewCall.notes && ` - ${timeline.notifications.interviewCall.notes}`}
                   </p>
                 )}
-                <button
-                  onClick={async () => {
-                    if (!window.confirm('Skip Interview Notification stage and move to Interview Scheduling?')) {
-                      return;
-                    }
+                {!isStageSkipped('Interview Notification') && (
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm('Skip Interview Notification stage and move to Interview Scheduling? This will make this stage inaccessible.')) {
+                        return;
+                      }
                     try {
-                      await api.post(`/candidates/${candidateId}/move-to-stage`, {
+                      const response = await api.post(`/candidates/${candidateId}/move-to-stage`, {
                         targetStage: 'interview-scheduled',
                         skipIntermediate: true,
-                        reason: 'Skipped Interview Notification stage'
+                        reason: 'Skipped Interview Notification stage',
+                        skippedStage: 'Interview Notification' // Explicitly specify which stage is skipped
                       });
-                      toast.success('Stage skipped successfully');
-                      fetchCandidateData();
+                      // Mark this specific stage as skipped immediately
+                      setSkippedStages(prev => new Set([...prev, 'Interview Notification']));
+
+                      toast.success('Interview Notification skipped - you can now schedule interviews');
+                      await fetchCandidateData(); // Wait for data to be fetched
                     } catch (error) {
                       toast.error(error.response?.data?.message || 'Failed to skip stage');
                     }
-                  }}
-                  className="btn-outline btn-sm mt-2"
-                >
-                  <SkipForward size={16} className="mr-2" />
-                  Skip This Stage
-                </button>
+                    }}
+                    className="btn-outline btn-sm mt-2"
+                  >
+                    <SkipForward size={16} className="mr-2" />
+                    Skip This Stage
+                  </button>
+                )}
               </div>
             </TimelineStep>
 
@@ -382,28 +389,34 @@ const CandidateTimeline = () => {
               title="Interview Scheduling"
               color="bg-indigo-500"
               completed={timeline.interviews?.length > 0}
+              skipped={isStageSkipped('Interview Scheduling')}
             >
               <div className="space-y-3">
-                {!timeline.notifications?.interviewEmail?.sent && (
+                {!isStageAccessible('Interview Scheduling', 'Interview Notification') && (
                   <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-3">
                     <p className="text-sm text-yellow-400 flex items-center">
                       <AlertCircle size={16} className="mr-2" />
-                      Please send interview notification email before scheduling interviews
+                      {isStageSkipped('Interview Notification')
+                        ? 'Previous stage was skipped - you can now schedule interviews'
+                        : 'Please send interview notification email before scheduling interviews'
+                      }
                     </p>
                   </div>
                 )}
-                <button
-                  onClick={() => setShowScheduleModal(true)}
-                  disabled={!timeline.notifications?.interviewEmail?.sent}
-                  className={`btn-sm ${
-                    timeline.notifications?.interviewEmail?.sent 
-                      ? 'btn-primary' 
-                      : 'btn-outline opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  <Calendar size={16} className="mr-2" />
-                  Schedule Interview
-                </button>
+                {!isStageSkipped('Interview Scheduling') && (
+                  <button
+                    onClick={() => setShowScheduleModal(true)}
+                    disabled={!isStageAccessible('Interview Scheduling', 'Interview Notification')}
+                    className={`btn-sm ${
+                      isStageAccessible('Interview Scheduling', 'Interview Notification')
+                        ? 'btn-primary'
+                        : 'btn-outline opacity-50 cursor-not-allowed'
+                    }`}
+                  >
+                    <Calendar size={16} className="mr-2" />
+                    Schedule Interview
+                  </button>
+                )}
                 
                 {timeline.interviews?.map((interview, idx) => (
                   <div key={interview._id} className="card bg-dark-800/50 p-4">
@@ -470,28 +483,35 @@ const CandidateTimeline = () => {
                     </div>
                   </div>
                 ))}
-                <button
-                  onClick={async () => {
-                    if (!window.confirm('Skip Interview Scheduling stage and move to HR Call?')) {
-                      return;
-                    }
-                    try {
-                      await api.post(`/candidates/${candidateId}/move-to-stage`, {
-                        targetStage: 'interview-completed',
-                        skipIntermediate: true,
-                        reason: 'Skipped Interview Scheduling stage'
-                      });
-                      toast.success('Stage skipped successfully');
-                      fetchCandidateData();
-                    } catch (error) {
-                      toast.error(error.response?.data?.message || 'Failed to skip stage');
-                    }
-                  }}
-                  className="btn-outline btn-sm mt-2"
-                >
-                  <SkipForward size={16} className="mr-2" />
-                  Skip This Stage
-                </button>
+                {!isStageSkipped('Interview Scheduling') && (
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm('Skip Interview Scheduling stage and move to HR Call? This will make this stage inaccessible.')) {
+                        return;
+                      }
+                      try {
+                        await api.post(`/candidates/${candidateId}/move-to-stage`, {
+                          targetStage: 'interview-completed',
+                          skipIntermediate: true,
+                          reason: 'Skipped Interview Scheduling stage',
+                          skippedStage: 'Interview Scheduling'
+                        });
+
+                        // Mark this specific stage as skipped immediately
+                        setSkippedStages(prev => new Set([...prev, 'Interview Scheduling']));
+
+                        toast.success('Interview Scheduling skipped - you can now conduct HR Call');
+                        fetchCandidateData();
+                      } catch (error) {
+                        toast.error(error.response?.data?.message || 'Failed to skip stage');
+                      }
+                    }}
+                    className="btn-outline btn-sm mt-2"
+                  >
+                    <SkipForward size={16} className="mr-2" />
+                    Skip This Stage
+                  </button>
+                )}
               </div>
             </TimelineStep>
 
@@ -501,37 +521,50 @@ const CandidateTimeline = () => {
               title="HR Call / Final Discussion"
               color="bg-purple-500"
               completed={timeline.hrCall?.status === 'completed'}
+              skipped={isStageSkipped('HR Call')}
             >
               <div className="space-y-3">
                 {(() => {
                   const hasCompletedInterview = timeline.interviews?.some(
                     interview => interview.status === 'completed' && interview.feedback && interview.rating
                   );
-                  return !hasCompletedInterview && (
-                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-3">
-                      <p className="text-sm text-yellow-400 flex items-center">
-                        <AlertCircle size={16} className="mr-2" />
-                        Please complete at least one interview and submit feedback before conducting HR call
-                      </p>
-                    </div>
+                  const isPreviousStageAccessible = isStageAccessible('HR Call', 'Interview Scheduling');
+                  const interviewSchedulingSkipped = isStageSkipped('Interview Scheduling');
+
+
+
+                  return (
+                    <>
+                      {!hasCompletedInterview && !interviewSchedulingSkipped && (
+                        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-3">
+                          <p className="text-sm text-yellow-400 flex items-center">
+                            <AlertCircle size={16} className="mr-2" />
+                            Complete at least one interview with feedback before conducting HR call
+                          </p>
+                        </div>
+                      )}
+                    </>
                   );
                 })()}
-                <button
-                  onClick={() => setShowHRCallModal(true)}
-                  disabled={!timeline.interviews?.some(
-                    interview => interview.status === 'completed' && interview.feedback && interview.rating
-                  )}
-                  className={`btn-sm ${
-                    timeline.interviews?.some(
-                      interview => interview.status === 'completed' && interview.feedback && interview.rating
-                    )
-                      ? 'btn-primary' 
-                      : 'btn-outline opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  <Phone size={16} className="mr-2" />
-                  {timeline.hrCall?.status === 'completed' ? 'Update HR Call' : 'Conduct HR Call'}
-                </button>
+                {!isStageSkipped('HR Call') && (() => {
+                  const hrCallAccessible = isStageAccessible('HR Call', 'Interview Scheduling');
+
+                  return (
+                    <button
+                      onClick={() => setShowHRCallModal(true)}
+                      disabled={!hrCallAccessible}
+                      className={`btn-sm ${
+                        hrCallAccessible
+                          ? 'btn-primary'
+                          : 'btn-outline opacity-50 cursor-not-allowed'
+                      }`}
+                      title={!hrCallAccessible ? 'Complete interview with feedback first, or skip interview scheduling' : 'Conduct HR Call'}
+                    >
+                      <Phone size={16} className="mr-2" />
+                      {timeline.hrCall?.status === 'completed' ? 'Update HR Call' : 'Conduct HR Call'}
+                    </button>
+                  );
+                })()}
                 
                 {timeline.hrCall && timeline.hrCall.status !== 'pending' && (
                   <div className="card bg-dark-800/50 p-4">
@@ -553,28 +586,35 @@ const CandidateTimeline = () => {
                     )}
                   </div>
                 )}
-                <button
-                  onClick={async () => {
-                    if (!window.confirm('Skip HR Call stage and move to Onboarding?')) {
-                      return;
-                    }
-                    try {
-                      await api.post(`/candidates/${candidateId}/move-to-stage`, {
-                        targetStage: 'sent-to-onboarding',
-                        skipIntermediate: true,
-                        reason: 'Skipped HR Call stage'
-                      });
-                      toast.success('Stage skipped successfully');
-                      fetchCandidateData();
-                    } catch (error) {
-                      toast.error(error.response?.data?.message || 'Failed to skip stage');
-                    }
-                  }}
-                  className="btn-outline btn-sm mt-2"
-                >
-                  <SkipForward size={16} className="mr-2" />
-                  Skip This Stage
-                </button>
+                {!isStageSkipped('HR Call') && (
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm('Skip HR Call stage and move to Onboarding? This will make this stage inaccessible.')) {
+                        return;
+                      }
+                      try {
+                        await api.post(`/candidates/${candidateId}/move-to-stage`, {
+                          targetStage: 'sent-to-onboarding',
+                          skipIntermediate: true,
+                          reason: 'Skipped HR Call stage',
+                          skippedStage: 'HR Call'
+                        });
+
+                        // Mark this specific stage as skipped immediately
+                        setSkippedStages(prev => new Set([...prev, 'HR Call']));
+
+                        toast.success('HR Call skipped - candidate moved to onboarding');
+                        fetchCandidateData();
+                      } catch (error) {
+                        toast.error(error.response?.data?.message || 'Failed to skip stage');
+                      }
+                    }}
+                    className="btn-outline btn-sm mt-2"
+                  >
+                    <SkipForward size={16} className="mr-2" />
+                    Skip This Stage
+                  </button>
+                )}
               </div>
             </TimelineStep>
 
@@ -601,7 +641,9 @@ const CandidateTimeline = () => {
                       await api.post(`/candidates/${candidateId}/move-to-stage`, {
                         directToOnboarding: true,
                         skipIntermediate: true,
-                        reason: 'Direct move to onboarding'
+                        skipStageValidation: true,
+                        forceMove: true,
+                        reason: 'Direct move to onboarding from any stage'
                       });
                       toast.success('Candidate moved to onboarding');
                       fetchCandidateData();
@@ -687,15 +729,34 @@ const CandidateTimeline = () => {
 };
 
 // Timeline Step Component
-const TimelineStep = ({ icon: Icon, title, color, completed, children }) => {
+const TimelineStep = ({ icon: Icon, title, color, completed, skipped, children }) => {
   return (
-    <div className="relative flex items-start space-x-4">
-      <div className={`relative z-10 flex items-center justify-center w-12 h-12 rounded-full ${color} ${!completed && 'opacity-50'}`}>
-        <Icon size={24} className="text-white" />
+    <div className={`relative flex items-start space-x-4 ${skipped ? 'opacity-60 pointer-events-none select-none' : ''}`}>
+      <div className={`relative z-10 flex items-center justify-center w-12 h-12 rounded-full ${
+        skipped ? 'bg-gray-500' :
+        completed ? color :
+        'bg-gray-700 opacity-50'
+      }`}>
+        {skipped ? (
+          <SkipForward size={20} className="text-white" />
+        ) : (
+          <Icon size={24} className="text-white" />
+        )}
       </div>
       <div className="flex-1 pb-8">
-        <h3 className="text-lg font-semibold text-white mb-3">{title}</h3>
-        {children}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className={`text-lg font-semibold ${skipped ? 'text-gray-500' : 'text-white'}`}>
+            {title}
+            {skipped && <span className="ml-2 text-xs bg-gray-600 px-2 py-1 rounded">Skipped</span>}
+          </h3>
+        </div>
+        {skipped ? (
+          <div className="text-sm text-gray-500 italic">
+            This stage was skipped and is no longer accessible.
+          </div>
+        ) : (
+          children
+        )}
       </div>
     </div>
   );

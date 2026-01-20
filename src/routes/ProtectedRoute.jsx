@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children, roles = [] }) => {
   const { isAuthenticated, user, loading } = useAuth();
-  const allowedRoles = ['hr', 'admin'];
+  const allowedRoles = ['hr', 'admin', 'company_admin'];
 
   if (loading) {
     return (
@@ -23,6 +23,11 @@ const ProtectedRoute = ({ children, roles = [] }) => {
 
   if (!allowedRoles.includes(user?.role)) {
     return <Navigate to="/unauthorized" replace />;
+  }
+
+  // Company admin has FULL ACCESS to all routes - bypass all role restrictions
+  if (user?.role === 'company_admin') {
+    return children;
   }
 
   if (roles.length > 0 && !roles.includes(user?.role)) {

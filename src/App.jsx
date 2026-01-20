@@ -23,6 +23,7 @@ import Unauthorized from './pages/Unauthorized';
 // Admin Pages
 import Dashboard from './pages/Dashboard';
 import CandidateList from './pages/Candidates/CandidateList';
+import HRManagement from './pages/Admin/HRManagement';
 
 // HR Pages
 import JobDesk from './pages/JobDesk';
@@ -82,20 +83,21 @@ function App() {
           <Route
             path="/*"
             element={
-              <ProtectedRoute roles={['admin']}>
+              <ProtectedRoute roles={['admin', 'company_admin']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
           >
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="candidates" element={<CandidateList />} />
+            <Route path="hr-management" element={<HRManagement />} />
           </Route>
 
           {/* HR Routes */}
           <Route
             path="/employee/*"
             element={
-              <ProtectedRoute roles={['hr']}>
+              <ProtectedRoute roles={['hr', 'company_admin']}>
                 <EmployeeDashboardLayout />
               </ProtectedRoute>
             }
@@ -107,7 +109,7 @@ function App() {
           <Route
             path="/job-desk/*"
             element={
-              <ProtectedRoute roles={['hr']}>
+              <ProtectedRoute roles={['hr', 'company_admin']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -119,7 +121,7 @@ function App() {
           <Route
             path="/candidates/*"
             element={
-              <ProtectedRoute roles={['hr']}>
+              <ProtectedRoute roles={['hr', 'company_admin']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -130,7 +132,7 @@ function App() {
           <Route
             path="/employees/*"
             element={
-              <ProtectedRoute roles={['hr']}>
+              <ProtectedRoute roles={['hr', 'company_admin']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }

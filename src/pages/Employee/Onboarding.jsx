@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Plus, CheckCircle, Circle, Clock, FileText, Calendar, 
+import {
+  Plus, CheckCircle, Circle, Clock, FileText, Calendar,
   Users, AlertCircle, Eye, Edit, Send, CheckSquare,
   Filter, Search, MoreHorizontal, Mail, Phone, X, Briefcase,
   MapPin, DollarSign, Building, FileEdit, Trash2, Copy, Save, Check, SkipForward
@@ -8,6 +8,7 @@ import {
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
 import { config } from '../../config/api.config';
+import { useAuth } from '../../context/AuthContext';
 
 // New comprehensive onboarding status labels
 const statusLabels = {
@@ -21,7 +22,7 @@ const statusLabels = {
   'rejected': { label: 'Rejected', color: 'bg-red-500', icon: AlertCircle }
 };
 
-const OnboardingProgressBar = ({ status, onSkipStage, itemId }) => {
+const OnboardingProgressBar = ({ status, onSkipStage, itemId, canEdit = true }) => {
   const steps = [
     'preboarding', 'offer_sent', 'offer_accepted', 
     'docs_pending', 'docs_verified', 'ready_for_joining', 'completed'
@@ -67,8 +68,8 @@ const OnboardingProgressBar = ({ status, onSkipStage, itemId }) => {
                 }`}>
                   {stepInfo.label}
                 </div>
-                {/* Skip button for future stages */}
-                {canSkip && onSkipStage && (
+                {/* Skip button for future stages - only for users who can edit */}
+                {canSkip && onSkipStage && canEdit && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -92,28 +93,18 @@ const OnboardingProgressBar = ({ status, onSkipStage, itemId }) => {
           );
         })}
       </div>
-      {/* Skip to next stage button */}
-      {currentIndex >= 0 && currentIndex < steps.length - 1 && status !== 'rejected' && status !== 'completed' && onSkipStage && (
-        <div className="flex items-center justify-center mt-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const nextStep = steps[currentIndex + 1];
-              handleSkip(nextStep);
-            }}
-            className="btn-outline text-xs py-1 px-3 flex items-center space-x-1"
-            title={`Skip current stage and move to ${statusLabels[steps[currentIndex + 1]]?.label}`}
-          >
-            <SkipForward size={12} />
-            <span>Skip to {statusLabels[steps[currentIndex + 1]]?.label}</span>
-          </button>
-        </div>
-      )}
+      
     </div>
   );
 };
 
 const Onboarding = () => {
+  const { user } = useAuth();
+
+  // Check if user is admin (view-only access)
+  const isAdminViewOnly = user?.role === 'company_admin';
+  const canEdit = !isAdminViewOnly; // Only HR can edit, admin can only view
+
   const [activeTab, setActiveTab] = useState('onboarding'); // 'onboarding' or 'templates'
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -207,7 +198,11 @@ const Onboarding = () => {
 
   const sendOffer = async (id, offerDetails) => {
     try {
-      await api.post(`/onboarding/${id}/send-offer`, offerDetails);
+      await api.post(`/onboarding/${id}/send-offer`, {
+        ...offerDetails,
+        frontendUrl: config.frontendUrl,
+        apiBaseUrl: config.apiBaseUrl
+      });
       toast.success('Offer sent successfully');
       fetchList();
     } catch (e) {
@@ -241,7 +236,10 @@ const Onboarding = () => {
 
   const requestDocuments = async (id) => {
     try {
-      const res = await api.post(`/onboarding/${id}/request-documents`);
+      const res = await api.post(`/onboarding/${id}/request-documents`, {
+        frontendUrl: config.frontendUrl,
+        apiBaseUrl: config.apiBaseUrl
+      });
       toast.success(`Document request email sent to ${res.data.data.sentTo}`);
     } catch (e) {
       toast.error(e?.response?.data?.message || 'Failed to send document request');
@@ -529,9 +527,10 @@ const Onboarding = () => {
       {/* Onboarding List */}
       <div className="space-y-4">
         {filteredList.map((item) => (
-          <OnboardingCard 
-            key={item._id} 
-            item={item} 
+          <OnboardingCard
+            key={item._id}
+            item={item}
+            canEdit={canEdit}
             onUpdateStatus={updateStatus}
             onSendOffer={sendOffer}
             onSetJoiningDate={setJoiningDate}
@@ -636,7 +635,7 @@ const Onboarding = () => {
 };
 
 // Onboarding Card Component
-const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, onComplete, onViewDetails, onOpenSendOfferModal, onRequestDocuments, onSkipStage }) => {
+const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, onComplete, onViewDetails, onOpenSendOfferModal, onRequestDocuments, onSkipStage, canEdit = true }) => {
   const [showActions, setShowActions] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [joiningDateInput, setJoiningDateInput] = useState('');
@@ -726,37 +725,45 @@ const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, o
           >
             <Eye size={16} />
           </button>
-          <div className="relative">
-            <button
-              onClick={() => setShowActions(!showActions)}
-              className="btn-outline text-sm"
-            >
-              <MoreHorizontal size={16} />
-            </button>
-            {showActions && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10">
-                {nextActions.map((action, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      action.action();
-                      setShowActions(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg"
-                  >
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {canEdit && (
+            <div className="relative">
+              <button
+                onClick={() => setShowActions(!showActions)}
+                className="btn-outline text-sm"
+              >
+                <MoreHorizontal size={16} />
+              </button>
+              {showActions && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10">
+                  {nextActions.map((action, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        action.action();
+                        setShowActions(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg"
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {!canEdit && (
+            <div className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
+              View Only
+            </div>
+          )}
         </div>
       </div>
 
-      <OnboardingProgressBar 
-        status={item.status} 
+      <OnboardingProgressBar
+        status={item.status}
         onSkipStage={onSkipStage}
         itemId={item._id}
+        canEdit={canEdit}
       />
 
       {item.joiningDate && (
@@ -1536,10 +1543,129 @@ const SendOfferModal = ({ candidate, onClose, onSend }) => {
   const [formData, setFormData] = useState({
     candidateName: candidate.candidateName || '',
     salary: '',
-    templateId: 'default'
+    templateId: '',
+    designation: candidate.position || '',
+    startDate: ''
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [templates, setTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [selectedTemplatePreview, setSelectedTemplatePreview] = useState(null);
+
+  // Fetch available templates
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        setLoadingTemplates(true);
+        const response = await api.get('/offer-templates', {
+          params: { status: 'active' }
+        });
+        const availableTemplates = response.data.data || [];
+        setTemplates(availableTemplates);
+
+        // Set default template if available
+        const defaultTemplate = availableTemplates.find(t => t.isDefault);
+        if (defaultTemplate) {
+          setFormData(prev => ({ ...prev, templateId: defaultTemplate._id }));
+        } else if (availableTemplates.length > 0) {
+          setFormData(prev => ({ ...prev, templateId: availableTemplates[0]._id }));
+        }
+      } catch (error) {
+        console.error('Failed to load templates:', error);
+
+        // Provide fallback templates for testing when backend is not available
+        const fallbackTemplates = [
+          {
+            _id: 'default-template-1',
+            name: 'Full-Time Offer Template',
+            category: 'full-time',
+            description: 'Standard full-time employment offer template',
+            subject: '🎉 Congratulations! Offer Letter - {{position}} at {{companyName}}',
+            content: `Dear {{candidateName}},
+
+We are thrilled to extend an offer for the position of {{position}} at {{companyName}}!
+
+OFFER DETAILS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Position: {{position}}
+Department: {{department}}
+Employment Type: Full-Time
+Annual CTC: ₹{{offeredCTC}}
+Proposed Start Date: {{startDate}}
+
+This offer is valid until {{expiryDate}}. Please confirm your acceptance by replying to this email.
+
+We look forward to welcoming you to our team!
+
+Best regards,
+{{hrName}}
+{{companyName}}
+{{hrEmail}} | {{hrPhone}}`,
+            status: 'active',
+            isDefault: true,
+            expiryDays: 7,
+            version: '1.0',
+            usageCount: 0
+          },
+          {
+            _id: 'default-template-2',
+            name: 'Internship Offer Template',
+            category: 'intern',
+            description: 'Internship offer template with stipend details',
+            subject: 'Welcome Aboard! Internship Offer - {{position}} at {{companyName}}',
+            content: `Dear {{candidateName}},
+
+Congratulations! We are excited to offer you an internship position as {{position}} at {{companyName}}.
+
+INTERNSHIP DETAILS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Position: {{position}}
+Department: {{department}}
+Type: Internship
+Monthly Stipend: ₹{{offeredCTC}}
+Start Date: {{startDate}}
+
+LEARNING OPPORTUNITIES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Work on real-world projects
+• Learn from experienced professionals
+• Mentorship and guidance
+
+ACCEPTANCE DEADLINE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Please confirm your acceptance by {{expiryDate}} by replying to this email.
+
+We're excited to have you join our team!
+
+Best regards,
+{{hrName}}
+{{companyName}}
+{{hrEmail}} | {{hrPhone}}`,
+            status: 'active',
+            isDefault: false,
+            expiryDays: 7,
+            version: '1.0',
+            usageCount: 0
+          }
+        ];
+
+        setTemplates(fallbackTemplates);
+        setFormData(prev => ({ ...prev, templateId: fallbackTemplates[0]._id }));
+
+        // Only show error toast if it's not a 404 (endpoint doesn't exist)
+        if (error.response?.status !== 404) {
+          toast.error('Failed to load email templates, using default templates');
+        } else {
+          console.warn('⚠️ Offer templates API not available, using fallback templates for testing');
+        }
+      } finally {
+        setLoadingTemplates(false);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
 
   const validate = () => {
     const newErrors = {};
@@ -1548,6 +1674,15 @@ const SendOfferModal = ({ candidate, onClose, onSend }) => {
     }
     if (!formData.salary || formData.salary <= 0) {
       newErrors.salary = 'Valid salary is required';
+    }
+    if (!formData.templateId) {
+      newErrors.templateId = 'Please select an email template';
+    }
+    if (!formData.designation.trim()) {
+      newErrors.designation = 'Designation is required';
+    }
+    if (!formData.startDate) {
+      newErrors.startDate = 'Start date is required';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -1562,9 +1697,11 @@ const SendOfferModal = ({ candidate, onClose, onSend }) => {
       await onSend(candidate._id, {
         templateId: formData.templateId,
         offerDetails: {
-          designation: candidate.position,
+          designation: formData.designation,
+          offeredCTC: parseFloat(formData.salary),
           ctc: parseFloat(formData.salary),
-          salary: parseFloat(formData.salary)
+          salary: parseFloat(formData.salary),
+          startDate: formData.startDate
         }
       });
       onClose();
@@ -1575,14 +1712,20 @@ const SendOfferModal = ({ candidate, onClose, onSend }) => {
     }
   };
 
+  const handleTemplateChange = (templateId) => {
+    setFormData({ ...formData, templateId });
+    const template = templates.find(t => t._id === templateId);
+    setSelectedTemplatePreview(template);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-dark-900 border border-dark-700 rounded-xl max-w-md w-full">
+      <div className="bg-dark-900 border border-dark-700 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="border-b border-dark-700 p-6 flex items-center justify-between">
+        <div className="sticky top-0 bg-dark-900 border-b border-dark-700 p-6 flex items-center justify-between z-10">
           <div>
-            <h2 className="text-xl font-bold text-white">Send Offer Letter</h2>
-            <p className="text-gray-400 text-sm mt-1">Fill in the offer details</p>
+            <h2 className="text-xl font-bold text-white">Send Offer Letter Email</h2>
+            <p className="text-gray-400 text-sm mt-1">Select a template and fill in the offer details</p>
           </div>
           <button onClick={onClose} className="btn-outline p-2">
             <X size={20} />
@@ -1609,6 +1752,51 @@ const SendOfferModal = ({ candidate, onClose, onSend }) => {
             )}
           </div>
 
+          {/* Email Template Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Select Email Template *
+            </label>
+            {loadingTemplates ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                <span className="ml-2 text-gray-400 text-sm">Loading templates...</span>
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                <p className="text-yellow-400 text-sm">
+                  No active templates available. Please create an offer template first.
+                </p>
+              </div>
+            ) : (
+              <>
+                <select
+                  value={formData.templateId}
+                  onChange={(e) => handleTemplateChange(e.target.value)}
+                  className={`input-field w-full ${errors.templateId ? 'border-red-500' : ''}`}
+                >
+                  <option value="">Select a template...</option>
+                  {templates.map((template) => (
+                    <option key={template._id} value={template._id}>
+                      {template.name} - {template.category} 
+                      {template.isDefault && ' (Default)'}
+                    </option>
+                  ))}
+                </select>
+                {errors.templateId && (
+                  <p className="text-red-400 text-sm mt-1">{errors.templateId}</p>
+                )}
+                {selectedTemplatePreview && (
+                  <div className="mt-2 p-3 bg-dark-800 rounded-lg">
+                    <p className="text-xs text-gray-400 mb-1">Template Preview:</p>
+                    <p className="text-sm text-white font-medium mb-1">{selectedTemplatePreview.subject}</p>
+                    <p className="text-xs text-gray-500">{selectedTemplatePreview.description}</p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
           {/* Candidate Name */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -1623,6 +1811,23 @@ const SendOfferModal = ({ candidate, onClose, onSend }) => {
             />
             {errors.candidateName && (
               <p className="text-red-400 text-sm mt-1">{errors.candidateName}</p>
+            )}
+          </div>
+
+          {/* Designation */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Designation *
+            </label>
+            <input
+              type="text"
+              value={formData.designation}
+              onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+              className={`input-field w-full ${errors.designation ? 'border-red-500' : ''}`}
+              placeholder="e.g., Senior Software Engineer"
+            />
+            {errors.designation && (
+              <p className="text-red-400 text-sm mt-1">{errors.designation}</p>
             )}
           </div>
 
@@ -1650,15 +1855,33 @@ const SendOfferModal = ({ candidate, onClose, onSend }) => {
             )}
           </div>
 
+          {/* Start Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Proposed Start Date *
+            </label>
+            <input
+              type="date"
+              value={formData.startDate}
+              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+              min={new Date().toISOString().split('T')[0]}
+              className={`input-field w-full ${errors.startDate ? 'border-red-500' : ''}`}
+            />
+            {errors.startDate && (
+              <p className="text-red-400 text-sm mt-1">{errors.startDate}</p>
+            )}
+          </div>
+
           {/* Info Note */}
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
             <p className="text-blue-400 text-sm">
-              <strong>Note:</strong> A default offer letter template will be used. The offer will be sent to {candidate.candidateEmail}
+              <Mail size={14} className="inline mr-1" />
+              <strong>Note:</strong> The offer email will be sent to {candidate.candidateEmail} using the selected template.
             </p>
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end space-x-3 pt-4">
+          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-dark-700">
             <button
               type="button"
               onClick={onClose}
@@ -1670,7 +1893,7 @@ const SendOfferModal = ({ candidate, onClose, onSend }) => {
             <button
               type="submit"
               className="btn-primary flex items-center space-x-2"
-              disabled={loading}
+              disabled={loading || loadingTemplates || templates.length === 0}
             >
               {loading ? (
                 <>
@@ -1680,7 +1903,7 @@ const SendOfferModal = ({ candidate, onClose, onSend }) => {
               ) : (
                 <>
                   <Mail size={18} />
-                  <span>Send Offer</span>
+                  <span>Send Offer Email</span>
                 </>
               )}
             </button>

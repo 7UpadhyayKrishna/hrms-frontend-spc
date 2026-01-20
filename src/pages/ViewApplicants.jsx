@@ -192,24 +192,36 @@ const ViewApplicants = () => {
 
   const handleMoveToOnboarding = async (applicant, e) => {
     e.stopPropagation();
-    
+
     if (!window.confirm(`Send ${applicant.firstName} ${applicant.lastName} to comprehensive onboarding process?`)) {
       return;
     }
 
     try {
+      // First, move candidate to offer-accepted stage if they're not already in a valid stage
+      const validStages = ['offer-accepted', 'interview-completed', 'offer-extended', 'shortlisted'];
+      if (!validStages.includes(applicant.stage)) {
+        console.log(`Moving candidate from ${applicant.stage} to offer-accepted stage first`);
+        await api.post(`/candidates/${applicant._id}/move-to-stage`, {
+          targetStage: 'offer-accepted',
+          skipIntermediate: true,
+          reason: 'Auto-stage change for onboarding process'
+        });
+      }
+
+      // Now send to onboarding
       const response = await api.post(`/candidates/${applicant._id}/send-to-onboarding`, {
         notes: `Candidate sent to onboarding from job application review`
       });
-      
+
       toast.success('Candidate successfully sent to onboarding!');
-      
+
       // Show additional success info
       const onboardingData = response.data.data.onboarding;
       toast.success(`Onboarding record created: ${onboardingData.onboardingId}`, {
         duration: 4000
       });
-      
+
       // Refresh the applicants list to show updated status
       fetchApplicants();
     } catch (error) {

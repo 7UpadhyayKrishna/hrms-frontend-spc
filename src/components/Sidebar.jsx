@@ -14,8 +14,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const location = useLocation();
   const { user } = useAuth();
   
-  const isAdmin = user?.role === 'admin';
-  const isHR = user?.role === 'hr';
+  const isAdmin = user?.role === 'admin' || user?.role === 'company_admin';
+  const isHR = user?.role === 'hr' || user?.role === 'company_admin';
 
   const isActive = (path) => location.pathname === path;
 
@@ -61,7 +61,47 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     }
   ];
 
-  const menuItems = isHR ? hrMenuItems : isAdmin ? adminMenuItems : [];
+  // Company admin gets access to admin features + selected HR features (view-only for some)
+  console.log('🔍 SIDEBAR DEBUG:', {
+    userRole: user?.role,
+    isAdmin,
+    isHR,
+    menuType: user?.role === 'company_admin' ? 'ADMIN_PLUS_VIEW_HR' : isHR ? 'HR_ONLY' : isAdmin ? 'ADMIN_ONLY' : 'NO_ACCESS'
+  });
+
+  let menuItems = [];
+  if (user?.role === 'company_admin') {
+    // Admin gets admin menu + HR management features
+    menuItems = [
+      ...adminMenuItems,
+      {
+        key: 'hr-management',
+        label: 'HR Management',
+        icon: Users,
+        path: '/admin/hr-management'
+      },
+      {
+        key: 'onboarding',
+        label: 'Onboarding (View)',
+        icon: UserPlus,
+        path: '/employees/onboarding'
+      }
+    ];
+  } else if (isHR) {
+    menuItems = hrMenuItems;
+  } else if (isAdmin) {
+    menuItems = adminMenuItems;
+  }
+
+  // Log everything for debugging
+  console.log('🔍 SIDEBAR DEBUG:', {
+    userRole: user?.role,
+    user: user,
+    isAdmin,
+    isHR,
+    menuItemsCount: menuItems.length,
+    menuItems: menuItems.map(item => ({ key: item.key, label: item.label, path: item.path }))
+  });
 
   return (
     <>

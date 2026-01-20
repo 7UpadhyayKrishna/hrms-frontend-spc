@@ -14,7 +14,7 @@ const HomeRedirect = () => {
     return <Navigate to="/job-desk" replace />;
   }
 
-  if (user.role === 'admin') {
+  if (user.role === 'admin' || user.role === 'company_admin') {
     return <Navigate to="/dashboard" replace />;
   }
 
