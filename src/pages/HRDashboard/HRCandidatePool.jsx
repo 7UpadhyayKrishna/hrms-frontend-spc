@@ -365,6 +365,8 @@ const HRCandidatePool = () => {
       });
 
       if (response.data.success) {
+        console.log('Validation result received:', response.data.data);
+        console.log('Validated data sample:', response.data.data.validatedData?.slice(0, 2));
         setValidationResult(response.data.data);
         toast.success(`Validation complete: ${response.data.data.validRows} valid rows`);
       } else {
@@ -390,6 +392,7 @@ const HRCandidatePool = () => {
     setError('');
 
     try {
+      console.log('Sending import request with validatedData:', validationResult.validatedData?.slice(0, 2));
       const response = await api.post('/candidates/bulk/import', {
         validatedData: validationResult.validatedData,
         jobMapping: {} // Can be extended to map job titles to IDs

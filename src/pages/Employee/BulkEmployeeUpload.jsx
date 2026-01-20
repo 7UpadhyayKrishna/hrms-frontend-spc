@@ -66,10 +66,16 @@ const BulkEmployeeUpload = () => {
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
+        transformHeader: (header) => {
+          // Normalize column headers
+          return header.trim().toLowerCase();
+        },
         complete: (results) => {
-          setParsedData(results.data);
+          // Clean the parsed data
+          const cleanedData = cleanEmployeeData(results.data);
+          setParsedData(cleanedData);
           setLoading(false);
-          toast.success(`Parsed ${results.data.length} records from CSV`);
+          toast.success(`Parsed ${cleanedData.length} records from CSV`);
         },
         error: (error) => {
           toast.error('Failed to parse CSV file');
@@ -84,10 +90,37 @@ const BulkEmployeeUpload = () => {
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array' });
           const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-          const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-          setParsedData(jsonData);
+
+          // Configure XLSX to handle headers better
+          const jsonData = XLSX.utils.sheet_to_json(firstSheet, {
+            header: 1, // Use first row as headers
+            defval: "" // Default value for empty cells
+          });
+
+          if (jsonData.length === 0) {
+            toast.error('No data found in Excel file');
+            setLoading(false);
+            return;
+          }
+
+          // Extract headers and data
+          const headers = jsonData[0].map(h => String(h || '').trim().toLowerCase());
+          const rows = jsonData.slice(1);
+
+          // Convert to objects
+          const objectData = rows.map(row => {
+            const obj = {};
+            headers.forEach((header, index) => {
+              obj[header] = row[index] || '';
+            });
+            return obj;
+          });
+
+          // Clean the parsed data
+          const cleanedData = cleanEmployeeData(objectData);
+          setParsedData(cleanedData);
           setLoading(false);
-          toast.success(`Parsed ${jsonData.length} records from Excel`);
+          toast.success(`Parsed ${cleanedData.length} records from Excel`);
         } catch (error) {
           toast.error('Failed to parse Excel file');
           console.error('Excel parse error:', error);
@@ -138,6 +171,89 @@ const BulkEmployeeUpload = () => {
     }
   };
 
+  // Clean and normalize data before validation
+  const cleanEmployeeData = (data) => {
+    return data.map((row, index) => {
+      const cleaned = {};
+
+      // Clean each field
+      Object.keys(row).forEach(key => {
+        let value = row[key];
+
+        // Convert to string and trim whitespace
+        if (value !== null && value !== undefined) {
+          value = String(value).trim();
+
+          // Treat empty strings as undefined for required fields
+          if (value === '') {
+            value = undefined;
+          }
+        }
+
+        // Normalize field names (handle case variations)
+        const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        // Map common variations to correct field names
+        const fieldMapping = {
+          firstname: 'firstName',
+          lastname: 'lastName',
+          phonenumber: 'phone',
+          mobile: 'phone',
+          contactnumber: 'phone',
+          jobtitle: 'designation',
+          position: 'designation',
+          jobposition: 'designation',
+          startdate: 'joiningDate',
+          joindate: 'joiningDate',
+          hiredate: 'joiningDate',
+          employeetype: 'employmentType',
+          employeestatus: 'status',
+          employeecode: 'employeeCode',
+          employeeid: 'employeeCode'
+        };
+
+        const mappedKey = fieldMapping[normalizedKey] || key;
+
+        // Special handling for specific fields
+        if (mappedKey === 'phone') {
+          // Clean phone numbers - remove all non-digits
+          if (value) {
+            value = value.replace(/\D/g, '');
+          }
+        } else if (mappedKey === 'email') {
+          // Clean email - convert to lowercase and trim
+          if (value) {
+            value = value.toLowerCase().trim();
+          }
+        } else if (mappedKey === 'joiningDate') {
+          // Try to normalize date format
+          if (value) {
+            // Handle various date formats
+            const date = new Date(value);
+            if (!isNaN(date.getTime())) {
+              value = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+            }
+          }
+        }
+
+        cleaned[mappedKey] = value;
+      });
+
+      // Ensure required fields exist (even if empty)
+      const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'department', 'designation', 'joiningDate'];
+      requiredFields.forEach(field => {
+        if (!(field in cleaned)) {
+          cleaned[field] = undefined;
+        }
+      });
+
+      return {
+        ...cleaned,
+        _rowIndex: index + 1 // Add row index for error reporting
+      };
+    });
+  };
+
   // Validate data
   const validateData = async () => {
     if (parsedData.length === 0) {
@@ -147,12 +263,16 @@ const BulkEmployeeUpload = () => {
 
     setLoading(true);
     try {
+      // Clean and normalize the data before validation
+      const cleanedData = cleanEmployeeData(parsedData);
+      console.log('Cleaned data for validation:', cleanedData.slice(0, 3)); // Log first 3 records
+
       const response = await api.post('/employees/bulk/validate', {
-        employees: parsedData
+        employees: cleanedData
       });
 
       setValidationResults(response.data.data);
-      
+
       if (response.data.data.invalid === 0) {
         toast.success(`All ${response.data.data.valid} records are valid!`);
       } else {
@@ -177,6 +297,9 @@ const BulkEmployeeUpload = () => {
     setProgress(0);
 
     try {
+      // Clean and normalize the data before upload
+      const cleanedData = cleanEmployeeData(parsedData);
+
       // Simulate progress
       const progressInterval = setInterval(() => {
         setProgress(prev => {
@@ -189,14 +312,14 @@ const BulkEmployeeUpload = () => {
       }, 200);
 
       const response = await api.post('/employees/bulk/create', {
-        employees: parsedData
+        employees: cleanedData
       });
 
       clearInterval(progressInterval);
       setProgress(100);
 
       toast.success(response.data.message);
-      
+
       // Reset state after successful upload
       setTimeout(() => {
         navigate('/employees');
@@ -380,6 +503,43 @@ const BulkEmployeeUpload = () => {
             </div>
           )}
 
+          {/* Data Quality Check */}
+          <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+            {(() => {
+              const totalRows = parsedData.length;
+              const rowsWithFirstName = parsedData.filter(row => row.firstName || row.firstname).length;
+              const rowsWithEmail = parsedData.filter(row => row.email).length;
+              const rowsWithPhone = parsedData.filter(row => row.phone).length;
+
+              return (
+                <>
+                  <div className="bg-dark-800 p-3 rounded-lg">
+                    <p className="text-gray-400 text-sm">First Name</p>
+                    <p className={`text-lg font-bold ${rowsWithFirstName === totalRows ? 'text-green-500' : 'text-red-500'}`}>
+                      {rowsWithFirstName}/{totalRows}
+                    </p>
+                  </div>
+                  <div className="bg-dark-800 p-3 rounded-lg">
+                    <p className="text-gray-400 text-sm">Email</p>
+                    <p className={`text-lg font-bold ${rowsWithEmail === totalRows ? 'text-green-500' : 'text-red-500'}`}>
+                      {rowsWithEmail}/{totalRows}
+                    </p>
+                  </div>
+                  <div className="bg-dark-800 p-3 rounded-lg">
+                    <p className="text-gray-400 text-sm">Phone</p>
+                    <p className={`text-lg font-bold ${rowsWithPhone === totalRows ? 'text-green-500' : 'text-red-500'}`}>
+                      {rowsWithPhone}/{totalRows}
+                    </p>
+                  </div>
+                  <div className="bg-dark-800 p-3 rounded-lg">
+                    <p className="text-gray-400 text-sm">Total Rows</p>
+                    <p className="text-lg font-bold text-blue-500">{totalRows}</p>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+
           {/* Data Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -397,16 +557,37 @@ const BulkEmployeeUpload = () => {
                 {parsedData.slice(0, 10).map((row, index) => {
                   const validation = validationResults?.results?.find(r => r.row === index + 1);
                   const isValid = validation?.isValid !== false;
-                  
+
+                  // Check for missing required fields
+                  const missingFields = [];
+                  if (!row.firstName && !row.firstname) missingFields.push('First Name');
+                  if (!row.lastName && !row.lastname) missingFields.push('Last Name');
+                  if (!row.email) missingFields.push('Email');
+                  if (!row.phone) missingFields.push('Phone');
+                  if (!row.department) missingFields.push('Department');
+                  if (!row.designation) missingFields.push('Designation');
+                  if (!row.joiningDate) missingFields.push('Joining Date');
+
                   return (
-                    <tr key={index} className={`border-b border-gray-800 ${!isValid ? 'bg-red-900/20' : ''}`}>
+                    <tr key={index} className={`border-b border-gray-800 ${!isValid || missingFields.length > 0 ? 'bg-red-900/20' : ''}`}>
                       <td className="py-3 px-4 text-gray-300">{index + 1}</td>
                       <td className="py-3 px-4 text-white">
-                        {row.firstName} {row.lastName}
+                        {(row.firstName || row.firstname || 'N/A')} {(row.lastName || row.lastname || 'N/A')}
+                        {missingFields.includes('First Name') && <span className="text-red-400 text-xs ml-1">*</span>}
+                        {missingFields.includes('Last Name') && <span className="text-red-400 text-xs ml-1">*</span>}
                       </td>
-                      <td className="py-3 px-4 text-gray-300">{row.email}</td>
-                      <td className="py-3 px-4 text-gray-300">{row.phone}</td>
-                      <td className="py-3 px-4 text-gray-300">{row.department}</td>
+                      <td className="py-3 px-4 text-gray-300">
+                        {row.email || 'N/A'}
+                        {missingFields.includes('Email') && <span className="text-red-400 text-xs ml-1">*</span>}
+                      </td>
+                      <td className="py-3 px-4 text-gray-300">
+                        {row.phone || 'N/A'}
+                        {missingFields.includes('Phone') && <span className="text-red-400 text-xs ml-1">*</span>}
+                      </td>
+                      <td className="py-3 px-4 text-gray-300">
+                        {row.department || 'N/A'}
+                        {missingFields.includes('Department') && <span className="text-red-400 text-xs ml-1">*</span>}
+                      </td>
                       <td className="py-3 px-4">
                         {validation ? (
                           isValid ? (
@@ -420,8 +601,13 @@ const BulkEmployeeUpload = () => {
                               <span>Invalid</span>
                             </span>
                           )
+                        ) : missingFields.length > 0 ? (
+                          <span className="flex items-center space-x-1 text-yellow-500">
+                            <AlertCircle size={16} />
+                            <span>Missing Fields</span>
+                          </span>
                         ) : (
-                          <span className="text-gray-400">Not validated</span>
+                          <span className="text-gray-400">Ready to validate</span>
                         )}
                       </td>
                     </tr>

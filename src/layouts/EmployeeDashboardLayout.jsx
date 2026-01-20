@@ -10,7 +10,8 @@ import {
   Bell,
   ChevronDown,
   Users,
-  Search
+  Search,
+  FileText
 } from 'lucide-react';
 
 const EmployeeDashboardLayout = () => {
@@ -27,6 +28,7 @@ const EmployeeDashboardLayout = () => {
     { name: 'Job Desk', href: '/job-desk', icon: Briefcase },
     { name: 'Onboarding', href: '/employees/onboarding', icon: Users },
     { name: 'Candidate Pool', href: '/employee/hr/candidate-pool', icon: Users },
+    { name: 'Resume Parser', href: '/employee/hr/resume-parser', icon: FileText },
     { name: 'Resume Search', href: '/employee/hr/resume-search', icon: Search },
     { name: 'My Profile', href: '/employee/profile', icon: User },
   ];

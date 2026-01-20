@@ -1,5 +1,5 @@
 import api from './axios';
-import config from '../config/api.config';
+import { config } from '../config/api.config';
 
 const API_URL = config.apiBaseUrl;
 
@@ -134,7 +134,9 @@ export const getVerificationStats = async () => {
  */
 export const sendTestOnboardingEmail = async (onboardingId, testEmail) => {
   const response = await api.post(`/onboarding/${onboardingId}/send-test-email`, {
-    testEmail
+    testEmail,
+    frontendUrl: config.frontendUrl,
+    apiBaseUrl: config.apiBaseUrl
   });
   return response.data;
 };
