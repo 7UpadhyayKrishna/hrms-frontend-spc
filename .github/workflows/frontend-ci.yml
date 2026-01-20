@@ -30,3 +30,17 @@ jobs:
           push: true
           tags: adityasinghio/hrms-frontend:staging
 
+      - name: Deploy frontend to staging on EC2
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key
+          chmod 600 ~/.ssh/ec2_key
+
+          ssh -o StrictHostKeyChecking=no \
+              -i ~/.ssh/ec2_key \
+              root@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /home/ec2-user/app
+            docker-compose -p hrms-staging -f docker-compose.staging.yml pull frontend
+            docker-compose -p hrms-staging -f docker-compose.staging.yml up -d frontend
+          EOF
+
