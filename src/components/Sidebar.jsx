@@ -8,14 +8,30 @@ import {
   UserPlus,
   Search,
   X,
+  FileText,
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const location = useLocation();
   const { user } = useAuth();
+
+  // PERMANENT ROLE FIX
+  // Normalize admin role to company_admin (should be fixed in AuthContext, but double-check here)
+  let normalizedUser = user;
+  if (user && user.role === 'admin' && (user.email?.includes('admin') || user.email?.includes('@spc') || user.email?.includes('@company'))) {
+    normalizedUser = { ...user, role: 'company_admin' };
+    // Update localStorage if not already fixed
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    if (storedUser.role === 'admin') {
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
+    }
+  }
   
-  const isAdmin = user?.role === 'admin' || user?.role === 'company_admin';
-  const isHR = user?.role === 'hr' || user?.role === 'company_admin';
+  // Use normalized user for all checks
+  const effectiveUser = normalizedUser || user;
+
+  const isAdmin = effectiveUser?.role === 'admin' || effectiveUser?.role === 'company_admin';
+  const isHR = effectiveUser?.role === 'hr' || effectiveUser?.role === 'company_admin';
 
   const isActive = (path) => location.pathname === path;
 
@@ -37,6 +53,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       label: 'Candidate Pool',
       icon: Users,
       path: '/employee/hr/candidate-pool'
+    },
+    {
+      key: 'resume-parser',
+      label: 'Resume Parser',
+      icon: FileText,
+      path: '/employee/hr/resume-parser'
     },
     {
       key: 'resume-search',
@@ -61,24 +83,16 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     }
   ];
 
-  // Company admin gets access to admin features + selected HR features (view-only for some)
-  console.log('🔍 SIDEBAR DEBUG:', {
-    userRole: user?.role,
-    isAdmin,
-    isHR,
-    menuType: user?.role === 'company_admin' ? 'ADMIN_PLUS_VIEW_HR' : isHR ? 'HR_ONLY' : isAdmin ? 'ADMIN_ONLY' : 'NO_ACCESS'
-  });
 
   let menuItems = [];
-  if (user?.role === 'company_admin') {
-    // Admin gets admin menu + HR management features
+  if (effectiveUser?.role === 'company_admin') {
     menuItems = [
       ...adminMenuItems,
       {
         key: 'hr-management',
         label: 'HR Management',
         icon: Users,
-        path: '/admin/hr-management'
+        path: '/hr-management'
       },
       {
         key: 'onboarding',
@@ -91,17 +105,9 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     menuItems = hrMenuItems;
   } else if (isAdmin) {
     menuItems = adminMenuItems;
+  } else {
+    menuItems = [];
   }
-
-  // Log everything for debugging
-  console.log('🔍 SIDEBAR DEBUG:', {
-    userRole: user?.role,
-    user: user,
-    isAdmin,
-    isHR,
-    menuItemsCount: menuItems.length,
-    menuItems: menuItems.map(item => ({ key: item.key, label: item.label, path: item.path }))
-  });
 
   return (
     <>

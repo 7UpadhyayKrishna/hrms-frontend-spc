@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Search, 
-  Filter, 
-  Download, 
-  Mail, 
-  Phone, 
+import {
+  ArrowLeft,
+  Search,
+  Filter,
+  Download,
+  Mail,
+  Phone,
   Calendar,
   User,
   FileText,
@@ -20,7 +20,8 @@ import {
   Brain,
   BarChart3,
   Loader,
-  CheckCircle
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
@@ -235,8 +236,19 @@ const ViewApplicants = () => {
     // Allow onboarding for all active candidates who haven't been sent to onboarding yet
     const notAlreadySentToOnboarding = applicant.stage !== 'sent-to-onboarding' && applicant.stage !== 'joined';
     const isActive = applicant.status === 'active';
-    
+
     return notAlreadySentToOnboarding && isActive;
+  };
+
+  const isInOnboardingProcess = (applicant) => {
+    // Check if candidate is already in onboarding stages (BLOCKED)
+    const onboardingStages = ['sent-to-onboarding', 'joined', 'completed'];
+    return onboardingStages.includes(applicant.stage);
+  };
+
+  const canPerformHiringActions = (applicant) => {
+    // Block all hiring actions for candidates in onboarding
+    return !isInOnboardingProcess(applicant) && applicant.status === 'active';
   };
 
   const handleExportApplicants = () => {
@@ -509,11 +521,20 @@ const ViewApplicants = () => {
           {applicants.map((applicant) => (
             <div
               key={applicant._id}
-              className={location.pathname.includes('/hr/recruitment')
+              className={`relative ${location.pathname.includes('/hr/recruitment')
                 ? "bg-[#2A2A3A] rounded-2xl p-6 border border-gray-800 hover:border-[#A88BFF] transition-all cursor-pointer"
-                : "card hover:border-primary-600 transition-all cursor-pointer"}
+                : "card hover:border-primary-600 transition-all cursor-pointer"} ${isInOnboardingProcess(applicant) ? 'opacity-75' : ''}`}
               onClick={() => handleViewCandidate(applicant._id)}
             >
+              {/* BLOCKED OVERLAY for candidates in onboarding */}
+              {isInOnboardingProcess(applicant) && (
+                <div className="absolute inset-0 bg-red-600/10 border-2 border-red-600/30 rounded-2xl flex items-center justify-center z-10">
+                  <div className="bg-red-600/90 text-white px-4 py-2 rounded-lg flex items-center space-x-2 font-medium">
+                    <XCircle size={16} />
+                    <span>Hiring Process Blocked - In Onboarding</span>
+                  </div>
+                </div>
+              )}
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 {/* Left Section - Basic Info */}
                 <div className="flex items-start space-x-4 flex-1">
@@ -530,8 +551,11 @@ const ViewApplicants = () => {
                       <span className={`badge ${getStatusBadge(applicant.status)}`}>
                         {applicant.status}
                       </span>
-                      <span className={`px-2 py-1 rounded-md text-xs font-medium ${getStageColor(applicant.stage)}`}>
+                      <span className={`px-2 py-1 rounded-md text-xs font-medium ${getStageColor(applicant.stage)} ${
+                        isInOnboardingProcess(applicant) ? 'bg-red-600/20 text-red-400 border border-red-600/30' : ''
+                      }`}>
                         {applicant.stage.replace(/-/g, ' ')}
+                        {isInOnboardingProcess(applicant) && ' 🔒'}
                       </span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
@@ -615,7 +639,15 @@ const ViewApplicants = () => {
                         <span>Resume</span>
                       </a>
                     )}
-                    {canMoveToOnboarding(applicant) ? (
+                    {isInOnboardingProcess(applicant) ? (
+                      // BLOCKED: Candidate is in onboarding - show blocked status
+                      <div className={location.pathname.includes('/hr/recruitment')
+                        ? "bg-red-600/20 border border-red-600/50 text-red-400 text-sm py-2 px-4 rounded-xl flex items-center space-x-2 whitespace-nowrap"
+                        : "bg-red-600/20 border border-red-600/50 text-red-400 text-sm py-2 px-4 rounded-lg flex items-center space-x-2 whitespace-nowrap"}>
+                        <XCircle size={16} />
+                        <span>Blocked - In Onboarding</span>
+                      </div>
+                    ) : canMoveToOnboarding(applicant) ? (
                       <button
                         onClick={(e) => handleMoveToOnboarding(applicant, e)}
                         className={location.pathname.includes('/hr/recruitment')
@@ -626,14 +658,15 @@ const ViewApplicants = () => {
                         <UserPlus size={16} />
                         <span>Onboarding</span>
                       </button>
-                    ) : applicant.stage === 'sent-to-onboarding' || applicant.stage === 'joined' ? (
+                    ) : (
+                      // No action available for this candidate
                       <span className={location.pathname.includes('/hr/recruitment')
-                        ? "text-green-400 text-sm py-2 px-4 flex items-center space-x-2 whitespace-nowrap"
-                        : "text-green-400 text-sm py-2 px-4 flex items-center space-x-2 whitespace-nowrap"}>
-                        <CheckCircle size={16} />
-                        <span>In Onboarding</span>
+                        ? "text-gray-500 text-sm py-2 px-4 flex items-center space-x-2 whitespace-nowrap"
+                        : "text-gray-500 text-sm py-2 px-4 flex items-center space-x-2 whitespace-nowrap"}>
+                        <Clock size={16} />
+                        <span>Waiting</span>
                       </span>
-                    ) : null}
+                    )}
                   </div>
                 </div>
               </div>

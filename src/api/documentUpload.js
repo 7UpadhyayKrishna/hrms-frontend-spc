@@ -1,5 +1,5 @@
 import api from './axios';
-import { config } from '../config/api.config';
+import config from '../config/api.config';
 
 const API_URL = config.apiBaseUrl;
 
@@ -133,10 +133,14 @@ export const getVerificationStats = async () => {
  * Send test onboarding email
  */
 export const sendTestOnboardingEmail = async (onboardingId, testEmail) => {
+  // Use current origin to ensure correct URL in all environments
+  const currentUrl = window.location.origin;
+  const uploadUrl = `${currentUrl}/public/upload-documents`;
+
   const response = await api.post(`/onboarding/${onboardingId}/send-test-email`, {
     testEmail,
-    frontendUrl: config.frontendUrl,
-    apiBaseUrl: config.apiBaseUrl
+    frontendUrl: currentUrl,
+    uploadBaseUrl: uploadUrl
   });
   return response.data;
 };
