@@ -81,7 +81,7 @@ export const config = {
   frontendUrl: getFrontendUrl(currentEnv),
   
   // Timeout settings
-  apiTimeout: 30000, // 30 seconds
+  apiTimeout: 300000, // 5 minutes (increased for long-running operations like resume parsing)
   
   // Feature flags (can be controlled via env variables)
   features: {
