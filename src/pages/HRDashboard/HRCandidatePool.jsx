@@ -170,7 +170,7 @@ const HRCandidatePool = () => {
         // Convert JD search results to the same format as regular entries
         jdMatchedEntries = jdSearch.searchResults.map(match => ({
           ...normalizeCandidateEntry(match.candidate),
-          matchScore: match.matchScore,
+          matchScore: match.overallScore,
           overallFit: match.overallFit,
           matchedSkills: match.matchedSkills,
           relevanceExplanation: match.relevanceExplanation,
@@ -323,7 +323,7 @@ const HRCandidatePool = () => {
           type: 'candidate',
           relevanceExplanation: match.relevanceExplanation,
           matchedSkills: match.matchedSkills,
-          matchScore: match.matchScore,
+          matchScore: match.overallScore,
           overallFit: match.overallFit,
           experienceMatch: match.experienceMatch,
           locationMatch: match.locationMatch

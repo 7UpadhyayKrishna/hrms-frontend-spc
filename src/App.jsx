@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { Toaster } from 'react-hot-toast';
 import HomeRedirect from './components/HomeRedirect';
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -35,6 +36,7 @@ import EmployeeList from './pages/Employee/EmployeeList';
 import EmployeeAdd from './pages/Employee/EmployeeAdd';
 import EmployeeEdit from './pages/Employee/EmployeeEdit';
 import EmployeeDetail from './pages/Employee/EmployeeDetail';
+import EmployeeProfile from './pages/Employee/EmployeeProfile';
 import BulkEmployeeUpload from './pages/Employee/BulkEmployeeUpload';
 import ResumeSearch from './pages/HRDashboard/ResumeSearch';
 import ResumeParser from './pages/HRDashboard/ResumeParser';
@@ -44,7 +46,8 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router>
+        <NotificationProvider>
+          <Router>
           <Toaster
             position="top-right"
             toastOptions={{
@@ -109,6 +112,7 @@ function App() {
               </ProtectedRoute>
             }
           >
+            <Route path="profile" element={<EmployeeProfile />} />
             <Route path="hr/candidate-pool" element={<HRCandidatePool />} />
             <Route path="hr/resume-search" element={<ResumeSearch />} />
             <Route path="hr/resume-parser" element={<ResumeParser />} />
@@ -154,7 +158,8 @@ function App() {
             <Route path="offboarding" element={<Offboarding />} />
           </Route>
           </Routes>
-        </Router>
+          </Router>
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   );

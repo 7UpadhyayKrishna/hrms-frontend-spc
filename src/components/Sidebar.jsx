@@ -76,12 +76,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       ]
     },
     {
-      key: 'offboarding',
-      label: 'Offboarding',
-      icon: UserMinus,
-      path: '/employees/offboarding'
-    },
-    {
       key: 'candidate-pool',
       label: 'Candidate Pool',
       icon: Users,
