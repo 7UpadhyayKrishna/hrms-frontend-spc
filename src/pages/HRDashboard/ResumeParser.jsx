@@ -169,9 +169,29 @@ const ResumeParser = () => {
             fileSize: file?.size,
             mimeType: file?.type,
             fallback: parsedData.metadata?.fallback || false,
-            error: parsedData.metadata?.error
-          }
-        }
+            error: parsedData.metadata?.error,
+            // Include S3 file information if available
+            s3File: parsedData.s3File || null
+          },
+          // Store complete Reducto JSON response for future reference
+          reductoResponse: parsedData,
+          // Store extracted data separately
+          extractedData: parsedData.extractedData
+        },
+
+        // Store resume file information from S3
+        resume: parsedData.s3File ? {
+          url: parsedData.s3File.url,
+          filename: parsedData.s3File.fileName,
+          originalName: parsedData.s3File.fileName,
+          size: parsedData.s3File.size,
+          mimetype: parsedData.s3File.fileName?.endsWith('.pdf') ? 'application/pdf' :
+                   parsedData.s3File.fileName?.endsWith('.docx') ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' :
+                   'application/msword',
+          uploadedAt: parsedData.s3File.uploadedAt,
+          s3Key: parsedData.s3File.key,
+          s3Bucket: parsedData.s3File.bucket
+        } : null
       };
 
       console.log('Sending candidate data to save:', candidateData);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -6,14 +6,20 @@ import {
   Briefcase,
   Users,
   UserPlus,
+  UserMinus,
   Search,
   X,
   FileText,
+  User,
+  Upload,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const location = useLocation();
   const { user } = useAuth();
+  const [expandedMenus, setExpandedMenus] = useState({});
 
   // PERMANENT ROLE FIX
   // Normalize admin role to company_admin (should be fixed in AuthContext, but double-check here)
@@ -35,6 +41,20 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
   const isActive = (path) => location.pathname === path;
 
+  const toggleMenu = (key) => {
+    setExpandedMenus(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const isMenuActive = (item) => {
+    if (item.children) {
+      return item.children.some(child => isActive(child.path));
+    }
+    return isActive(item.path);
+  };
+
   const hrMenuItems = [
     {
       key: 'jobdesk',
@@ -43,10 +63,23 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       path: '/job-desk'
     },
     {
-      key: 'onboarding',
-      label: 'Onboarding',
-      icon: UserPlus,
-      path: '/employees/onboarding'
+      key: 'employees',
+      label: 'Employees',
+      icon: User,
+      path: '/employees',
+      children: [
+        { label: 'All Employees', path: '/employees' },
+        { label: 'Add Employee', path: '/employees/add' },
+        { label: 'Bulk Upload', path: '/employees/bulk-upload' },
+        { label: 'Onboarding', path: '/employees/onboarding' },
+        { label: 'Offboarding', path: '/employees/offboarding' }
+      ]
+    },
+    {
+      key: 'offboarding',
+      label: 'Offboarding',
+      icon: UserMinus,
+      path: '/employees/offboarding'
     },
     {
       key: 'candidate-pool',
@@ -95,10 +128,17 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         path: '/hr-management'
       },
       {
-        key: 'onboarding',
-        label: 'Onboarding (View)',
-        icon: UserPlus,
-        path: '/employees/onboarding'
+        key: 'employees',
+        label: 'Employee Management',
+        icon: User,
+        path: '/employees',
+        children: [
+          { label: 'All Employees', path: '/employees' },
+          { label: 'Add Employee', path: '/employees/add' },
+          { label: 'Bulk Upload', path: '/employees/bulk-upload' },
+          { label: 'Onboarding', path: '/employees/onboarding' },
+          { label: 'Offboarding', path: '/employees/offboarding' }
+        ]
       }
     ];
   } else if (isHR) {
@@ -146,17 +186,57 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         <nav className="flex-1 py-4 px-3">
           {menuItems.map((item) => (
             <div key={item.key} className="mb-1">
-              <Link
-                to={item.path}
-                className={`flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(item.path)
-                  ? 'sidebar-menu-item active' 
-                  : 'sidebar-menu-item'}`}
-                onMouseEnter={(e) => e.currentTarget.classList.add('hover:bg-gray-800', 'hover:text-white')}
-                onMouseLeave={(e) => e.currentTarget.classList.remove('hover:bg-gray-800', 'hover:text-white')}
-              >
-                <item.icon size={20} />
-                <span>{item.label}</span>
-              </Link>
+              {item.children ? (
+                <div>
+                  <button
+                    onClick={() => toggleMenu(item.key)}
+                    className={`flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isMenuActive(item)
+                        ? 'sidebar-menu-item active'
+                        : 'sidebar-menu-item'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <item.icon size={20} />
+                      <span>{item.label}</span>
+                    </div>
+                    {expandedMenus[item.key] ? (
+                      <ChevronDown size={16} />
+                    ) : (
+                      <ChevronRight size={16} />
+                    )}
+                  </button>
+                  {expandedMenus[item.key] && (
+                    <div className="ml-6 mt-1 space-y-1">
+                      {item.children.map((child, index) => (
+                        <Link
+                          key={index}
+                          to={child.path}
+                          className={`flex items-center px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                            isActive(child.path)
+                              ? 'bg-blue-600 text-white'
+                              : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                          }`}
+                        >
+                          <span>{child.label}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  to={item.path}
+                  className={`flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(item.path)
+                    ? 'sidebar-menu-item active'
+                    : 'sidebar-menu-item'}`}
+                  onMouseEnter={(e) => e.currentTarget.classList.add('hover:bg-gray-800', 'hover:text-white')}
+                  onMouseLeave={(e) => e.currentTarget.classList.remove('hover:bg-gray-800', 'hover:text-white')}
+                >
+                  <item.icon size={20} />
+                  <span>{item.label}</span>
+                </Link>
+              )}
             </div>
           ))}
         </nav>

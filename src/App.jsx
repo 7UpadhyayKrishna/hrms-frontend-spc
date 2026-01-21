@@ -30,6 +30,12 @@ import JobDesk from './pages/JobDesk';
 import ViewApplicants from './pages/ViewApplicants';
 import CandidateTimeline from './pages/CandidateTimeline';
 import Onboarding from './pages/Employee/Onboarding';
+import Offboarding from './pages/Employee/Offboarding';
+import EmployeeList from './pages/Employee/EmployeeList';
+import EmployeeAdd from './pages/Employee/EmployeeAdd';
+import EmployeeEdit from './pages/Employee/EmployeeEdit';
+import EmployeeDetail from './pages/Employee/EmployeeDetail';
+import BulkEmployeeUpload from './pages/Employee/BulkEmployeeUpload';
 import ResumeSearch from './pages/HRDashboard/ResumeSearch';
 import ResumeParser from './pages/HRDashboard/ResumeParser';
 import HRCandidatePool from './pages/HRDashboard/HRCandidatePool';
@@ -139,7 +145,13 @@ function App() {
               </ProtectedRoute>
             }
           >
+            <Route index element={<EmployeeList />} />
+            <Route path="add" element={<EmployeeAdd />} />
+            <Route path="bulk-upload" element={<BulkEmployeeUpload />} />
+            <Route path=":id/edit" element={<EmployeeEdit />} />
+            <Route path=":id" element={<EmployeeDetail />} />
             <Route path="onboarding" element={<Onboarding />} />
+            <Route path="offboarding" element={<Offboarding />} />
           </Route>
           </Routes>
         </Router>
