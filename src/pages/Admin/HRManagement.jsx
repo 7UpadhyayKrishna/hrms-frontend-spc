@@ -54,11 +54,12 @@ const HRManagement = () => {
 
   const handleStatusChange = async (userId, newStatus) => {
     try {
-      // This would need a backend endpoint to update user status
+      await api.put(`/user/${userId}/status`, { isActive: newStatus });
       toast.success(`User ${newStatus ? 'activated' : 'deactivated'} successfully`);
       fetchHRUsers(); // Refresh the list
     } catch (error) {
-      toast.error('Failed to update user status');
+      console.error('Error updating user status:', error);
+      toast.error(error.response?.data?.message || 'Failed to update user status');
     }
   };
 
@@ -68,206 +69,190 @@ const HRManagement = () => {
     }
 
     try {
-      // Try different possible endpoints for user deletion
-      let deleteEndpoint = `/user/${user._id}`;
-
-      // For admin users, might need different endpoint
-      if (user.role === 'company_admin' || user.role === 'admin') {
-        deleteEndpoint = `/user/delete/${user._id}`;
-      }
-
-      await api.delete(deleteEndpoint);
-
+      await api.delete(`/user/${user._id}`);
       toast.success('User removed successfully');
       fetchHRUsers(); // Refresh the list
     } catch (error) {
       console.error('Error deleting user:', error);
-
-      // If the first endpoint fails, try an alternative
-      if (error.response?.status === 404 && deleteEndpoint === `/user/${user._id}`) {
-        try {
-          await api.delete(`/user/delete/${user._id}`);
-          toast.success('User removed successfully');
-          fetchHRUsers();
-        } catch (secondError) {
-          toast.error(secondError.response?.data?.message || 'Failed to remove user');
-        }
-      } else {
-        toast.error(error.response?.data?.message || 'Failed to remove user');
-      }
+      toast.error(error.response?.data?.message || 'Failed to remove user');
     }
   };
 
   const getRoleBadge = (role) => {
     const roleConfig = {
-      'hr': { label: 'HR', color: 'bg-blue-500', icon: Users },
-      'admin': { label: 'Admin', color: 'bg-purple-500', icon: Shield },
-      'company_admin': { label: 'Company Admin', color: 'bg-green-500', icon: Shield }
+      'hr': { label: 'HR', bgColor: 'bg-blue-500/10', textColor: 'text-blue-400', borderColor: 'border-blue-500/30', icon: Users },
+      'admin': { label: 'Admin', bgColor: 'bg-purple-500/10', textColor: 'text-purple-400', borderColor: 'border-purple-500/30', icon: Shield },
+      'company_admin': { label: 'Company Admin', bgColor: 'bg-green-500/10', textColor: 'text-green-400', borderColor: 'border-green-500/30', icon: Shield }
     };
 
     const config = roleConfig[role] || roleConfig['hr'];
     const IconComponent = config.icon;
 
     return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.color} text-white`}>
-        <IconComponent size={12} className="mr-1" />
+      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${config.bgColor} ${config.textColor} border ${config.borderColor}`}>
+        <IconComponent size={12} />
         {config.label}
       </span>
     );
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-[#1E1E2A] p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">HR Management</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Manage HR users and administrators</p>
+          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+            <Users className="w-8 h-8 text-[#A88BFF]" />
+            HR Management
+          </h1>
+          <p className="text-gray-400 mt-1">Manage HR users and administrators</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="btn-primary flex items-center space-x-2"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#A88BFF] text-white text-sm font-medium hover:bg-[#B89CFF] transition-colors shadow-lg shadow-[#A88BFF]/20"
         >
-          <Plus size={16} />
+          <Plus size={18} />
           <span>Add HR User</span>
         </button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-dark-800 p-4 rounded-lg border border-dark-700">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-500 rounded-lg">
-              <Users className="h-6 w-6 text-white" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 p-6 rounded-xl border border-blue-500/20 hover:border-blue-500/40 transition-all hover:shadow-lg hover:shadow-blue-500/10">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-400 mb-2">Total HR Users</p>
+              <p className="text-3xl font-bold text-white">{hrUsers.length}</p>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-400">Total HR Users</p>
-              <p className="text-2xl font-bold text-white">{hrUsers.length}</p>
+            <div className="p-3 bg-blue-500/20 rounded-xl">
+              <Users className="h-8 w-8 text-blue-400" />
             </div>
           </div>
         </div>
 
-        <div className="bg-dark-800 p-4 rounded-lg border border-dark-700">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-500 rounded-lg">
-              <CheckCircle className="h-6 w-6 text-white" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-400">Active Users</p>
-              <p className="text-2xl font-bold text-white">
+        <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 p-6 rounded-xl border border-green-500/20 hover:border-green-500/40 transition-all hover:shadow-lg hover:shadow-green-500/10">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-400 mb-2">Active Users</p>
+              <p className="text-3xl font-bold text-white">
                 {hrUsers.filter(user => user.isActive).length}
               </p>
             </div>
+            <div className="p-3 bg-green-500/20 rounded-xl">
+              <CheckCircle className="h-8 w-8 text-green-400" />
+            </div>
           </div>
         </div>
 
-        <div className="bg-dark-800 p-4 rounded-lg border border-dark-700">
-          <div className="flex items-center">
-            <div className="p-2 bg-purple-500 rounded-lg">
-              <Shield className="h-6 w-6 text-white" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-400">Administrators</p>
-              <p className="text-2xl font-bold text-white">
+        <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 p-6 rounded-xl border border-purple-500/20 hover:border-purple-500/40 transition-all hover:shadow-lg hover:shadow-purple-500/10">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-400 mb-2">Administrators</p>
+              <p className="text-3xl font-bold text-white">
                 {hrUsers.filter(user => user.role === 'admin' || user.role === 'company_admin').length}
               </p>
+            </div>
+            <div className="p-3 bg-purple-500/20 rounded-xl">
+              <Shield className="h-8 w-8 text-purple-400" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-dark-800 p-4 rounded-lg border border-dark-700">
-        <div className="flex flex-col md:flex-row gap-4">
+      <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-4">
+        <div className="flex flex-col md:flex-row gap-4 md:items-center">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-5 w-5" />
               <input
                 type="text"
-                placeholder="Search users..."
+                placeholder="Search by name or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
               />
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Filter className="h-4 w-4 text-gray-400" />
+          <div className="flex items-center gap-3">
+            <Filter className="h-5 w-5 text-gray-400" />
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all cursor-pointer"
             >
-              <option value="all">All Users</option>
-              <option value="active">Active Only</option>
-              <option value="inactive">Inactive Only</option>
+              <option value="all" className="bg-[#1E1E2A]">All Users</option>
+              <option value="active" className="bg-[#1E1E2A]">Active Only</option>
+              <option value="inactive" className="bg-[#1E1E2A]">Inactive Only</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Users Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 overflow-hidden shadow-xl">
         {loading ? (
-          <div className="p-8 text-center">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading HR users...</p>
+          <div className="p-12 text-center">
+            <div className="w-16 h-16 border-4 border-[#A88BFF] border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-400">Loading HR users...</p>
           </div>
         ) : filteredUsers.length === 0 && hrUsers.length === 0 ? (
-          <div className="p-8 text-center">
-            <Users className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No HR users found</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <div className="p-12 text-center">
+            <div className="mx-auto w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mb-4">
+              <Users className="h-8 w-8 text-gray-500" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">No HR users found</h3>
+            <p className="text-sm text-gray-400 mb-6">
               Get started by adding your first HR user.
             </p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="mt-4 btn-primary"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#A88BFF] text-white text-sm font-medium hover:bg-[#B89CFF] transition-colors"
             >
-              <Plus size={16} className="inline mr-2" />
-              Add HR User
+              <Plus size={16} />
+              <span>Add HR User</span>
             </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-[#232334] border-b border-gray-800">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     User
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     Role
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     Joined
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-dark-800 divide-y divide-dark-700">
+              <tbody className="divide-y divide-gray-800">
                 {filteredUsers.map((user) => (
-                  <tr key={user._id} className="hover:bg-dark-700">
+                  <tr key={user._id} className="hover:bg-[#1E1E2A]/60 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                            <span className="text-sm font-medium text-gray-700">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-shrink-0">
+                          <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#A88BFF] to-[#7DB539] flex items-center justify-center shadow-lg">
+                            <span className="text-sm font-bold text-white">
                               {user.firstName?.[0]}{user.lastName?.[0]}
                             </span>
                           </div>
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-white">
+                        <div>
+                          <div className="text-sm font-semibold text-white">
                             {user.firstName} {user.lastName}
                           </div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
+                          <div className="text-xs text-gray-400 mt-0.5">{user.email}</div>
                         </div>
                       </div>
                     </td>
@@ -275,35 +260,46 @@ const HRManagement = () => {
                       {getRoleBadge(user.role)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full ${
                         user.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
+                          ? 'bg-green-500/10 text-green-400 border border-green-500/30'
+                          : 'bg-red-500/10 text-red-400 border border-red-500/30'
                       }`}>
+                        {user.isActive ? (
+                          <CheckCircle size={12} className="text-green-400" />
+                        ) : (
+                          <XCircle size={12} className="text-red-400" />
+                        )}
                         {user.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-300">
+                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        }) : 'N/A'}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => {
                             setSelectedUser(user);
                             setShowDetailsModal(true);
                           }}
-                          className="text-blue-400 hover:text-blue-300 p-1"
+                          className="p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 border border-blue-500/30 transition-all"
                           title="View Details"
                         >
                           <Eye size={16} />
                         </button>
                         <button
                           onClick={() => handleStatusChange(user._id, !user.isActive)}
-                          className={`p-1 ${
+                          className={`p-2 rounded-lg border transition-all ${
                             user.isActive
-                              ? 'text-red-400 hover:text-red-300'
-                              : 'text-green-400 hover:text-green-300'
+                              ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 border-red-500/30'
+                              : 'bg-green-500/10 text-green-400 hover:bg-green-500/20 hover:text-green-300 border-green-500/30'
                           }`}
                           title={user.isActive ? 'Deactivate' : 'Activate'}
                         >
@@ -311,7 +307,7 @@ const HRManagement = () => {
                         </button>
                         <button
                           onClick={() => handleDeleteUser(user)}
-                          className="text-red-500 hover:text-red-400 p-1"
+                          className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 border border-red-500/30 transition-all"
                           title="Remove User"
                         >
                           <Trash2 size={16} />
@@ -323,15 +319,14 @@ const HRManagement = () => {
               </tbody>
             </table>
 
-            {filteredUsers.length === 0 && (
-              <div className="p-8 text-center">
-                <Users className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-white">No HR users found</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  {searchTerm || filterStatus !== 'all'
-                    ? 'Try adjusting your search or filters.'
-                    : 'Get started by adding your first HR user.'
-                  }
+            {filteredUsers.length === 0 && hrUsers.length > 0 && (
+              <div className="p-12 text-center">
+                <div className="mx-auto w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mb-4">
+                  <Search className="h-8 w-8 text-gray-500" />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">No users found</h3>
+                <p className="text-sm text-gray-400">
+                  Try adjusting your search or filters.
                 </p>
               </div>
             )}
@@ -341,52 +336,94 @@ const HRManagement = () => {
 
       {/* User Details Modal */}
       {showDetailsModal && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-dark-800 rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-white">User Details</h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#2A2A3A] rounded-2xl border border-gray-800 p-6 max-w-md w-full shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">User Details</h3>
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="text-gray-400 hover:text-gray-300"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
               >
-                <XCircle size={24} />
+                <XCircle size={20} />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <div className="h-12 w-12 rounded-full bg-gray-600 flex items-center justify-center">
-                  <span className="text-lg font-medium text-white">
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 pb-4 border-b border-gray-800">
+                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#A88BFF] to-[#7DB539] flex items-center justify-center shadow-lg">
+                  <span className="text-xl font-bold text-white">
                     {selectedUser.firstName?.[0]}{selectedUser.lastName?.[0]}
                   </span>
                 </div>
                 <div>
-                  <h4 className="text-lg font-medium text-white">{selectedUser.firstName} {selectedUser.lastName}</h4>
+                  <h4 className="text-xl font-bold text-white mb-1">{selectedUser.firstName} {selectedUser.lastName}</h4>
                   {getRoleBadge(selectedUser.role)}
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Mail size={16} className="text-gray-400" />
-                  <span className="text-gray-300">{selectedUser.email}</span>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-[#1E1E2A] rounded-lg border border-gray-800">
+                  <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <Mail size={18} className="text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Email</p>
+                    <p className="text-sm font-medium text-white">{selectedUser.email}</p>
+                  </div>
                 </div>
                 {selectedUser.phone && (
-                  <div className="flex items-center space-x-2">
-                    <Phone size={16} className="text-gray-400" />
-                    <span className="text-gray-300">{selectedUser.phone}</span>
+                  <div className="flex items-center gap-3 p-3 bg-[#1E1E2A] rounded-lg border border-gray-800">
+                    <div className="p-2 bg-green-500/10 rounded-lg">
+                      <Phone size={18} className="text-green-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Phone</p>
+                      <p className="text-sm font-medium text-white">{selectedUser.phone}</p>
+                    </div>
                   </div>
                 )}
-                <div className="flex items-center space-x-2">
-                  <Calendar size={16} className="text-gray-400" />
-                  <span className="text-gray-300">Joined {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : 'N/A'}</span>
+                <div className="flex items-center gap-3 p-3 bg-[#1E1E2A] rounded-lg border border-gray-800">
+                  <div className="p-2 bg-purple-500/10 rounded-lg">
+                    <Calendar size={18} className="text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Joined Date</p>
+                    <p className="text-sm font-medium text-white">
+                      {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric'
+                      }) : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-[#1E1E2A] rounded-lg border border-gray-800">
+                  <div className={`p-2 rounded-lg ${
+                    selectedUser.isActive ? 'bg-green-500/10' : 'bg-red-500/10'
+                  }`}>
+                    {selectedUser.isActive ? (
+                      <CheckCircle size={18} className="text-green-400" />
+                    ) : (
+                      <XCircle size={18} className="text-red-400" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Status</p>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${
+                      selectedUser.isActive
+                        ? 'bg-green-500/10 text-green-400 border border-green-500/30'
+                        : 'bg-red-500/10 text-red-400 border border-red-500/30'
+                    }`}>
+                      {selectedUser.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-2 pt-4">
+              <div className="flex justify-end pt-4 border-t border-gray-800">
                 <button
                   onClick={() => setShowDetailsModal(false)}
-                  className="px-4 py-2 text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-700"
+                  className="px-6 py-2.5 text-gray-300 border border-gray-700 rounded-lg hover:bg-gray-700 hover:text-white hover:border-gray-600 transition-all"
                 >
                   Close
                 </button>
@@ -505,121 +542,126 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-[#2A2A3A] rounded-2xl border border-gray-800 p-6 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-medium">Add New HR User</h3>
+          <div>
+            <h3 className="text-xl font-bold text-white">Add New HR User</h3>
+            <p className="text-sm text-gray-400 mt-1">Create a new HR user account</p>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-300"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
           >
-            <XCircle size={24} />
+            <XCircle size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address *
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Email Address <span className="text-red-400">*</span>
             </label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.email ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-4 py-2.5 bg-[#1E1E2A] border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all ${
+                errors.email ? 'border-red-500' : 'border-gray-700'
               }`}
               placeholder="hr@example.com"
             />
             {errors.email && (
-              <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+              <p className="text-red-400 text-xs mt-1.5">{errors.email}</p>
             )}
           </div>
 
           {/* First Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              First Name *
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              First Name <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
               value={formData.firstName}
               onChange={(e) => handleInputChange('firstName', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.firstName ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-4 py-2.5 bg-[#1E1E2A] border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all ${
+                errors.firstName ? 'border-red-500' : 'border-gray-700'
               }`}
               placeholder="John"
             />
             {errors.firstName && (
-              <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>
+              <p className="text-red-400 text-xs mt-1.5">{errors.firstName}</p>
             )}
           </div>
 
           {/* Last Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Last Name *
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Last Name <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
               value={formData.lastName}
               onChange={(e) => handleInputChange('lastName', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.lastName ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-4 py-2.5 bg-[#1E1E2A] border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all ${
+                errors.lastName ? 'border-red-500' : 'border-gray-700'
               }`}
               placeholder="Doe"
             />
             {errors.lastName && (
-              <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>
+              <p className="text-red-400 text-xs mt-1.5">{errors.lastName}</p>
             )}
           </div>
 
           {/* Role */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Role *
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Role <span className="text-red-400">*</span>
             </label>
             <select
               value={formData.role}
               onChange={(e) => handleInputChange('role', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.role ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-4 py-2.5 bg-[#1E1E2A] border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all cursor-pointer ${
+                errors.role ? 'border-red-500' : 'border-gray-700'
               }`}
             >
-              <option value="hr">HR</option>
-              <option value="admin">Admin</option>
-              <option value="employee">Employee</option>
+              <option value="hr" className="bg-[#1E1E2A]">HR</option>
+              <option value="admin" className="bg-[#1E1E2A]">Admin</option>
+              <option value="employee" className="bg-[#1E1E2A]">Employee</option>
             </select>
             {errors.role && (
-              <p className="text-red-500 text-sm mt-1">{errors.role}</p>
+              <p className="text-red-400 text-xs mt-1.5">{errors.role}</p>
             )}
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 mt-1.5">
               Note: Only Company Admins can create Admin-level users
             </p>
           </div>
 
           {/* Phone */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Phone Number (Optional)
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Phone Number <span className="text-gray-500">(Optional)</span>
             </label>
             <input
               type="tel"
               value={formData.phone}
               onChange={(e) => handleInputChange('phone', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
               placeholder="+1 (555) 123-4567"
             />
           </div>
 
           {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <div className="flex items-start space-x-2">
-              <Mail className="h-5 w-5 text-blue-500 mt-0.5" />
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="p-1.5 bg-blue-500/20 rounded-lg">
+                <Mail className="h-4 w-4 text-blue-400" />
+              </div>
               <div>
-                <p className="text-sm font-medium text-blue-800">Email Notification</p>
-                <p className="text-sm text-blue-700">
+                <p className="text-sm font-medium text-blue-300 mb-1">Email Notification</p>
+                <p className="text-xs text-blue-400/80">
                   A welcome email with login credentials will be sent to the new user automatically.
                 </p>
               </div>
@@ -627,11 +669,11 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
           </div>
 
           {/* Form Actions */}
-          <div className="flex justify-end space-x-3 pt-4">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-700"
+              className="px-5 py-2.5 text-gray-300 border border-gray-700 rounded-lg hover:bg-gray-700 hover:text-white hover:border-gray-600 transition-all"
               disabled={loading}
             >
               Cancel
@@ -639,7 +681,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              className="px-5 py-2.5 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-lg shadow-[#A88BFF]/20"
             >
               {loading ? (
                 <>

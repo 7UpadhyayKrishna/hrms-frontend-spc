@@ -333,53 +333,55 @@ const BulkEmployeeUpload = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-[#1E1E2A] space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/employees')}
-            className="p-2 hover:bg-dark-800 rounded-lg"
+            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
           >
-            <ArrowLeft size={20} className="text-gray-400" />
+            <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-white">Bulk Employee Upload</h1>
+            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+              Bulk Employee Upload
+            </h1>
             <p className="text-gray-400 mt-1">Import employees from CSV, Excel, or Google Sheets</p>
           </div>
         </div>
         <button
           onClick={downloadTemplate}
-          className="btn-outline flex items-center space-x-2"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1E1E2A] border border-gray-700 text-gray-200 text-sm font-medium hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors"
         >
-          <Download size={20} />
+          <Download size={18} />
           <span>Download Template</span>
         </button>
       </div>
 
       {/* Tab Selection */}
-      <div className="card">
-        <div className="flex space-x-4 border-b border-gray-700 pb-4">
+      <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
+        <div className="flex gap-4 border-b border-gray-800 pb-4">
           <button
             onClick={() => setActiveTab('file')}
-            className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
+            className={`px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all ${
               activeTab === 'file' 
-                ? 'bg-primary-600 text-white' 
-                : 'bg-dark-800 text-gray-400 hover:bg-dark-700'
+                ? 'bg-[#A88BFF] text-white shadow-lg shadow-[#A88BFF]/20' 
+                : 'bg-[#1E1E2A] text-gray-400 hover:text-white hover:bg-gray-700 border border-gray-700'
             }`}
           >
-            <Upload size={20} />
+            <Upload size={18} />
             <span>Upload File</span>
           </button>
           <button
             onClick={() => setActiveTab('google-sheets')}
-            className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
+            className={`px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all ${
               activeTab === 'google-sheets' 
-                ? 'bg-primary-600 text-white' 
-                : 'bg-dark-800 text-gray-400 hover:bg-dark-700'
+                ? 'bg-[#A88BFF] text-white shadow-lg shadow-[#A88BFF]/20' 
+                : 'bg-[#1E1E2A] text-gray-400 hover:text-white hover:bg-gray-700 border border-gray-700'
             }`}
           >
-            <FileSpreadsheet size={20} />
+            <FileSpreadsheet size={18} />
             <span>Google Sheets</span>
           </button>
         </div>
@@ -387,7 +389,7 @@ const BulkEmployeeUpload = () => {
         {/* File Upload Tab */}
         {activeTab === 'file' && (
           <div className="mt-6 space-y-4">
-            <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center">
+            <div className="border-2 border-dashed border-gray-700 rounded-xl p-12 text-center hover:border-[#A88BFF] transition-colors">
               <input
                 type="file"
                 accept=".csv,.xlsx,.xls"
@@ -396,8 +398,8 @@ const BulkEmployeeUpload = () => {
                 id="file-upload"
               />
               <label htmlFor="file-upload" className="cursor-pointer">
-                <Upload size={48} className="mx-auto text-gray-400 mb-4" />
-                <p className="text-white mb-2">
+                <Upload size={48} className="mx-auto text-[#A88BFF] mb-4" />
+                <p className="text-white mb-2 font-medium">
                   {file ? file.name : 'Click to upload or drag and drop'}
                 </p>
                 <p className="text-gray-400 text-sm">
@@ -423,13 +425,13 @@ const BulkEmployeeUpload = () => {
                     value={googleSheetUrl}
                     onChange={(e) => setGoogleSheetUrl(e.target.value)}
                     placeholder="https://docs.google.com/spreadsheets/d/..."
-                    className="input-field pl-10"
+                    className="w-full pl-10 pr-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
                   />
                 </div>
                 <button
                   onClick={fetchGoogleSheetData}
                   disabled={loading}
-                  className="btn-primary"
+                  className="px-4 py-2.5 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-[#A88BFF]/20"
                 >
                   {loading ? 'Fetching...' : 'Fetch Data'}
                 </button>
@@ -444,7 +446,7 @@ const BulkEmployeeUpload = () => {
 
       {/* Data Preview */}
       {parsedData.length > 0 && (
-        <div className="card">
+        <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-white">
               Data Preview ({parsedData.length} records)
@@ -453,7 +455,7 @@ const BulkEmployeeUpload = () => {
               <button
                 onClick={validateData}
                 disabled={loading}
-                className="btn-outline flex items-center space-x-2"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1E1E2A] border border-gray-700 text-gray-200 text-sm font-medium hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors"
               >
                 {loading ? (
                   <>
@@ -473,7 +475,7 @@ const BulkEmployeeUpload = () => {
           {/* Validation Summary */}
           {validationResults && (
             <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-dark-800 p-4 rounded-lg">
+              <div className="bg-[#1E1E2A] p-4 rounded-lg border border-gray-800">
                 <div className="flex items-center space-x-2">
                   <CheckCircle size={20} className="text-green-500" />
                   <div>
@@ -482,7 +484,7 @@ const BulkEmployeeUpload = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-dark-800 p-4 rounded-lg">
+              <div className="bg-[#1E1E2A] p-4 rounded-lg border border-gray-800">
                 <div className="flex items-center space-x-2">
                   <XCircle size={20} className="text-red-500" />
                   <div>
@@ -491,7 +493,7 @@ const BulkEmployeeUpload = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-dark-800 p-4 rounded-lg">
+              <div className="bg-[#1E1E2A] p-4 rounded-lg border border-gray-800">
                 <div className="flex items-center space-x-2">
                   <FileSpreadsheet size={20} className="text-blue-500" />
                   <div>

@@ -138,7 +138,22 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   } else if (isHR) {
     menuItems = hrMenuItems;
   } else if (isAdmin) {
-    menuItems = adminMenuItems;
+    menuItems = [
+      ...adminMenuItems,
+      {
+        key: 'employees',
+        label: 'Employee Management',
+        icon: User,
+        path: '/employees',
+        children: [
+          { label: 'All Employees', path: '/employees' },
+          { label: 'Add Employee', path: '/employees/add' },
+          { label: 'Bulk Upload', path: '/employees/bulk-upload' },
+          { label: 'Onboarding', path: '/employees/onboarding' },
+          { label: 'Offboarding', path: '/employees/offboarding' }
+        ]
+      }
+    ];
   } else {
     menuItems = [];
   }
