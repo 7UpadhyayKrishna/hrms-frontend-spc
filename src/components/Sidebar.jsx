@@ -115,6 +115,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       label: 'Pending Approvals',
       icon: ShieldCheck,
       path: '/approvals/pending'
+    },
+    {
       key: 'departments',
       label: 'Departments',
       icon: Building,
