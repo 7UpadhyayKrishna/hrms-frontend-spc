@@ -25,7 +25,11 @@ import Unauthorized from './pages/Unauthorized';
 import Dashboard from './pages/Dashboard';
 import CandidateList from './pages/Candidates/CandidateList';
 import HRManagement from './pages/Admin/HRManagement';
+
+import PendingApprovals from './pages/ApprovalWorkflow/PendingApprovals';
+
 import DepartmentManagement from './pages/Admin/DepartmentManagement';
+
 
 // HR Pages
 import JobDesk from './pages/JobDesk';
@@ -103,6 +107,7 @@ function App() {
             <Route path="candidates" element={<CandidateList />} />
             <Route path="departments" element={<DepartmentManagement />} />
             <Route path="hr-management" element={<HRManagement />} />
+            <Route path="approvals/pending" element={<PendingApprovals />} />
           </Route>
 
           {/* HR Routes */}

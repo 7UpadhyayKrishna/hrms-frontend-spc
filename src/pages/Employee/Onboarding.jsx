@@ -3,16 +3,19 @@ import {
   Plus, CheckCircle, Circle, Clock, FileText, Calendar,
   Users, AlertCircle, Eye, Edit, Send, CheckSquare,
   Filter, Search, MoreHorizontal, Mail, Phone, X, Briefcase,
-  MapPin, DollarSign, Building, FileEdit, Trash2, Copy, Save, Check, SkipForward
+  MapPin, DollarSign, Building, FileEdit, Trash2, Copy, Save, Check, SkipForward,
+  ShieldCheck, ShieldX, Loader2, RefreshCw, UserCheck
 } from 'lucide-react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
 import { config } from '../../config/api.config';
 import { useAuth } from '../../context/AuthContext';
 
-// New comprehensive onboarding status labels
+// New comprehensive onboarding status labels - includes approval statuses
 const statusLabels = {
   'preboarding': { label: 'Pre-boarding', color: 'bg-blue-500', icon: Circle },
+  'pending_approval': { label: 'Pending Approval', color: 'bg-amber-500', icon: Clock },
+  'approval_rejected': { label: 'On Hold', color: 'bg-orange-600', icon: ShieldX },
   'offer_sent': { label: 'Offer Sent', color: 'bg-yellow-500', icon: Mail },
   'offer_accepted': { label: 'Offer Accepted', color: 'bg-green-500', icon: CheckCircle },
   'docs_pending': { label: 'Documents Pending', color: 'bg-orange-500', icon: FileText },
@@ -20,6 +23,14 @@ const statusLabels = {
   'ready_for_joining': { label: 'Ready for Joining', color: 'bg-purple-500', icon: Calendar },
   'completed': { label: 'Completed', color: 'bg-green-600', icon: CheckCircle },
   'rejected': { label: 'Rejected', color: 'bg-red-500', icon: AlertCircle }
+};
+
+// Approval status labels for display
+const approvalStatusLabels = {
+  'not_requested': { label: 'Not Requested', color: 'bg-gray-500', textColor: 'text-gray-400' },
+  'pending': { label: 'Pending Admin Approval', color: 'bg-amber-500', textColor: 'text-amber-400' },
+  'approved': { label: 'Approved', color: 'bg-green-500', textColor: 'text-green-400' },
+  'rejected': { label: 'Rejected - On Hold', color: 'bg-red-500', textColor: 'text-red-400' }
 };
 
 const OnboardingProgressBar = ({ status, onSkipStage, itemId, canEdit = true }) => {
@@ -278,6 +289,25 @@ const Onboarding = () => {
       toast.success(`Document request email sent to ${res.data.data.sentTo}`);
     } catch (e) {
       toast.error(e?.response?.data?.message || 'Failed to send document request');
+    }
+  };
+
+  // Request approval from admin before sending offer
+  const requestApproval = async (id) => {
+    try {
+      const res = await api.post(`/onboarding/${id}/request-approval`, {
+        notes: 'Requesting approval to send offer letter'
+      });
+      toast.success(res.data.message || 'Approval request sent to admin');
+      fetchList();
+    } catch (e) {
+      const errorMessage = e?.response?.data?.message || 'Failed to request approval';
+      toast.error(errorMessage);
+      
+      // If approval is already pending, just refresh the list
+      if (e?.response?.data?.message?.includes('already pending')) {
+        fetchList();
+      }
     }
   };
 
@@ -580,6 +610,7 @@ const Onboarding = () => {
             }}
             onRequestDocuments={requestDocuments}
             onSkipStage={handleSkipStage}
+            onRequestApproval={requestApproval}
           />
         ))}
       </div>
@@ -670,18 +701,55 @@ const Onboarding = () => {
 };
 
 // Onboarding Card Component
-const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, onComplete, onViewDetails, onOpenSendOfferModal, onRequestDocuments, onSkipStage, canEdit = true }) => {
+const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, onComplete, onViewDetails, onOpenSendOfferModal, onRequestDocuments, onSkipStage, onRequestApproval, canEdit = true }) => {
   const [showActions, setShowActions] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [joiningDateInput, setJoiningDateInput] = useState('');
-  const statusInfo = statusLabels[item.status];
+  const [requestingApproval, setRequestingApproval] = useState(false);
+  const statusInfo = statusLabels[item.status] || statusLabels['preboarding'];
+  
+  // Get approval status info
+  const approvalStatus = item.approvalStatus?.status || 'not_requested';
+  const approvalInfo = approvalStatusLabels[approvalStatus] || approvalStatusLabels['not_requested'];
+  
+  // Check if approval is required and granted
+  const isApprovalGranted = approvalStatus === 'approved';
+  const isApprovalPending = approvalStatus === 'pending';
+  const isApprovalRejected = approvalStatus === 'rejected';
+  const canRequestApproval = (item.status === 'preboarding' && approvalStatus === 'not_requested') || 
+                             (item.status === 'approval_rejected' && approvalStatus === 'rejected');
+  
+  const handleRequestApproval = async () => {
+    if (!window.confirm('Request admin approval before sending offer letter? This will send a notification to the admin.')) {
+      return;
+    }
+    setRequestingApproval(true);
+    try {
+      await onRequestApproval(item._id);
+    } finally {
+      setRequestingApproval(false);
+    }
+  };
   
   const getNextActions = () => {
     switch (item.status) {
       case 'preboarding':
-        return [
-          { label: 'Send Offer', action: () => onOpenSendOfferModal(item), color: 'px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20' }
-        ];
+        // If approval is granted, allow sending offer
+        if (isApprovalGranted) {
+          return [
+            { label: 'Send Offer', action: () => onOpenSendOfferModal(item), color: 'btn-primary' }
+          ];
+        }
+        // If approval is pending, no actions
+        if (isApprovalPending) {
+          return [];
+        }
+        // Otherwise, show request approval button
+        return [];
+      case 'pending_approval':
+        return []; // Waiting for admin action
+      case 'approval_rejected':
+        return []; // HR can re-request via button below
       case 'offer_sent':
         return [
           { label: 'Mark Accepted', action: () => onUpdateStatus(item._id, 'offer_accepted'), color: 'btn-success' },
@@ -801,6 +869,66 @@ const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, o
         canEdit={canEdit}
       />
 
+      {/* Approval Status Indicator - Show when in preboarding or approval-related states */}
+      {(item.status === 'preboarding' || item.status === 'pending_approval' || item.status === 'approval_rejected') && (
+        <div className={`mb-4 p-3 rounded-lg border ${
+          isApprovalGranted ? 'bg-green-900/20 border-green-800' :
+          isApprovalPending ? 'bg-amber-900/20 border-amber-800' :
+          isApprovalRejected ? 'bg-red-900/20 border-red-800' :
+          'bg-blue-900/20 border-blue-800'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              {isApprovalGranted ? (
+                <ShieldCheck size={16} className="text-green-400" />
+              ) : isApprovalPending ? (
+                <Clock size={16} className="text-amber-400 animate-pulse" />
+              ) : isApprovalRejected ? (
+                <ShieldX size={16} className="text-red-400" />
+              ) : (
+                <AlertCircle size={16} className="text-blue-400" />
+              )}
+              <span className={`text-sm font-medium ${approvalInfo.textColor}`}>
+                {isApprovalGranted ? 'Admin Approved - Ready to send offer' :
+                 isApprovalPending ? 'Waiting for Admin Approval...' :
+                 isApprovalRejected ? `Approval Rejected: ${item.approvalStatus?.rejectionReason || 'No reason provided'}` :
+                 'Admin approval required before sending offer'}
+              </span>
+            </div>
+            
+            {/* Request Approval / Re-Request Button */}
+            {canEdit && canRequestApproval && (
+              <button
+                onClick={handleRequestApproval}
+                disabled={requestingApproval}
+                className="btn-primary btn-sm flex items-center space-x-1"
+              >
+                {requestingApproval ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Requesting...</span>
+                  </>
+                ) : (
+                  <>
+                    {isApprovalRejected ? <RefreshCw size={14} /> : <UserCheck size={14} />}
+                    <span>{isApprovalRejected ? 'Re-Request Approval' : 'Request Approval'}</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+          
+          {/* Show approval details if available */}
+          {item.approvalStatus?.requestedAt && (
+            <div className="mt-2 text-xs text-gray-400">
+              Requested: {new Date(item.approvalStatus.requestedAt).toLocaleString()}
+              {item.approvalStatus.approvedAt && ` • Approved: ${new Date(item.approvalStatus.approvedAt).toLocaleString()}`}
+              {item.approvalStatus.rejectedAt && ` • Rejected: ${new Date(item.approvalStatus.rejectedAt).toLocaleString()}`}
+            </div>
+          )}
+        </div>
+      )}
+
       {item.joiningDate && (
         <div className="mb-4 p-3 bg-green-900/20 border border-green-800 rounded-lg">
           <div className="flex items-center space-x-2">
@@ -838,6 +966,17 @@ const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, o
             <FileText size={14} />
             <span>Request Documents</span>
           </button>
+          
+          {/* Show Send Offer button only if approval is granted */}
+          {item.status === 'preboarding' && isApprovalGranted && canEdit && (
+            <button
+              onClick={() => onOpenSendOfferModal(item)}
+              className="btn-primary text-sm flex items-center space-x-1"
+            >
+              <Mail size={14} />
+              <span>Send Offer</span>
+            </button>
+          )}
           
           {nextActions.slice(0, 2).map((action, idx) => (
             <button

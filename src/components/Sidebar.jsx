@@ -14,6 +14,7 @@ import {
   Upload,
   ChevronDown,
   ChevronRight,
+  ShieldCheck,
   Building,
 } from 'lucide-react';
 
@@ -110,6 +111,10 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       path: '/candidates'
     },
     {
+      key: 'pending-approvals',
+      label: 'Pending Approvals',
+      icon: ShieldCheck,
+      path: '/approvals/pending'
       key: 'departments',
       label: 'Departments',
       icon: Building,
