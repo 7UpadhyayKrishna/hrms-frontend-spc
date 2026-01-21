@@ -225,8 +225,10 @@ const Onboarding = () => {
     if (!confirm('Are you sure you want to complete this onboarding? This will create an employee record.')) {
       return;
     }
-    
+
+
     try {
+
       const response = await api.post(`/onboarding/${id}/complete`);
       if (response.data.success) {
         toast.success(response.data.message || 'Onboarding completed successfully');

@@ -14,6 +14,7 @@ import {
   Upload,
   ChevronDown,
   ChevronRight,
+  Building,
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
@@ -107,6 +108,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       label: 'Candidates',
       icon: Users,
       path: '/candidates'
+    },
+    {
+      key: 'departments',
+      label: 'Departments',
+      icon: Building,
+      path: '/departments'
     }
   ];
 
