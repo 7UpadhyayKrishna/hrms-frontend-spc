@@ -90,10 +90,6 @@ const HRCandidatePool = () => {
       original: resume
     };
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/86de9070-b7f8-4b6a-9381-ebd3f3dce7a9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HRCandidatePool.jsx:normalizeResumeEntry',message:'Resume entry normalized',data:{id:resume._id,name:resume.name,rawSkills:resume.parsedData?.skills,normalizedSkills:normalized.skills,parsedDataExists:!!resume.parsedData},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
-    // #endregion
-
     return normalized;
   };
 
@@ -121,10 +117,6 @@ const HRCandidatePool = () => {
       resumeUrl: candidate.resume?.url,
       original: candidate
     };
-
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/86de9070-b7f8-4b6a-9381-ebd3f3dce7a9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HRCandidatePool.jsx:normalizeCandidateEntry',message:'Candidate entry normalized',data:{id:candidate._id,name:candidate.firstName+' '+candidate.lastName,rawSkills:candidate.skills,normalizedSkills:normalized.skills,resumeUrl:candidate.resume?.url},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
-    // #endregion
 
     return normalized;
   };
@@ -177,16 +169,8 @@ const HRCandidatePool = () => {
       const resumeData = Array.isArray(resumeResponse?.data?.data) ? resumeResponse.data.data : [];
       const candidateData = Array.isArray(candidateResponse?.data?.data) ? candidateResponse.data.data : [];
 
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/86de9070-b7f8-4b6a-9381-ebd3f3dce7a9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HRCandidatePool.jsx:fetchCandidatePool',message:'Raw API responses received',data:{resumeDataCount:resumeData.length,candidateDataCount:candidateData.length,firstResume:resumeData[0],firstCandidate:candidateData[0]},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
-      // #endregion
-
       const resumeEntries = resumeData.map(normalizeResumeEntry);
       const candidateEntries = candidateData.map(normalizeCandidateEntry);
-
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/86de9070-b7f8-4b6a-9381-ebd3f3dce7a9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HRCandidatePool.jsx:fetchCandidatePool',message:'Normalized entries created',data:{resumeEntriesCount:resumeEntries.length,candidateEntriesCount:candidateEntries.length,firstResumeEntry:resumeEntries[0],firstCandidateEntry:candidateEntries[0]},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
-      // #endregion
 
       // Include JD-matched candidates if JD search was performed
       let jdMatchedEntries = [];
