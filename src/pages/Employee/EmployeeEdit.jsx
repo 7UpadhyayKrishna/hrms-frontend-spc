@@ -99,24 +99,26 @@ const EmployeeEdit = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-4 border-[#A88BFF] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-[#1E1E2A] space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/employees')}
-            className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
           >
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-white">Edit Employee</h1>
+            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+              Edit Employee
+            </h1>
             <p className="text-gray-400 mt-1">Update employee information</p>
           </div>
         </div>
@@ -125,7 +127,7 @@ const EmployeeEdit = () => {
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Personal Information */}
-        <div className="card">
+        <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
             <User size={20} />
             <span>Personal Information</span>
@@ -140,7 +142,7 @@ const EmployeeEdit = () => {
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
                 required
               />
             </div>
@@ -153,7 +155,7 @@ const EmployeeEdit = () => {
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
                 required
               />
             </div>
@@ -166,7 +168,7 @@ const EmployeeEdit = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
                 required
               />
             </div>
@@ -179,7 +181,7 @@ const EmployeeEdit = () => {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
               />
             </div>
             <div>
@@ -191,7 +193,7 @@ const EmployeeEdit = () => {
                 name="dateOfBirth"
                 value={formData.dateOfBirth}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
               />
             </div>
             <div>
@@ -203,7 +205,7 @@ const EmployeeEdit = () => {
                 name="emergencyContact"
                 value={formData.emergencyContact}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
               />
             </div>
           </div>
@@ -216,13 +218,13 @@ const EmployeeEdit = () => {
               value={formData.address}
               onChange={handleChange}
               rows="3"
-              className="input-field"
+              className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
             />
           </div>
         </div>
 
         {/* Employment Information */}
-        <div className="card">
+        <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
             <Briefcase size={20} />
             <span>Employment Information</span>
@@ -237,7 +239,7 @@ const EmployeeEdit = () => {
                 name="employeeCode"
                 value={formData.employeeCode}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
                 required
               />
             </div>
@@ -250,7 +252,7 @@ const EmployeeEdit = () => {
                 name="designation"
                 value={formData.designation}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
                 required
               />
             </div>
@@ -262,7 +264,7 @@ const EmployeeEdit = () => {
                 name="department"
                 value={formData.department}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
                 required
               >
                 <option value="">Select Department</option>
@@ -282,7 +284,7 @@ const EmployeeEdit = () => {
                 name="dateOfJoining"
                 value={formData.dateOfJoining}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
                 required
               />
             </div>
@@ -294,7 +296,7 @@ const EmployeeEdit = () => {
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
               >
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
@@ -311,7 +313,7 @@ const EmployeeEdit = () => {
                 name="salary"
                 value={formData.salary}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
                 min="0"
               />
             </div>
@@ -319,7 +321,7 @@ const EmployeeEdit = () => {
         </div>
 
         {/* Financial Information */}
-        <div className="card">
+        <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
             <Building size={20} />
             <span>Financial Information</span>
@@ -334,7 +336,7 @@ const EmployeeEdit = () => {
                 name="bankAccount"
                 value={formData.bankAccount}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
               />
             </div>
             <div>
@@ -346,7 +348,7 @@ const EmployeeEdit = () => {
                 name="panNumber"
                 value={formData.panNumber}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
               />
             </div>
             <div>
@@ -358,7 +360,7 @@ const EmployeeEdit = () => {
                 name="aadharNumber"
                 value={formData.aadharNumber}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
               />
             </div>
           </div>
@@ -376,7 +378,7 @@ const EmployeeEdit = () => {
           <button
             type="submit"
             disabled={saving}
-            className="btn-primary flex items-center space-x-2"
+            className="px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20 flex items-center space-x-2"
           >
             <Save size={20} />
             <span>{saving ? 'Saving...' : 'Save Changes'}</span>

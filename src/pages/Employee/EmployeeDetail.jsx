@@ -29,7 +29,7 @@ const EmployeeDetail = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-4 border-[#A88BFF] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -37,25 +37,27 @@ const EmployeeDetail = () => {
   if (!employee) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-[#1E1E2A] space-y-6">
       {/* Header */}
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center gap-4">
         <button
           onClick={() => navigate('/employees')}
-          className="p-2 hover:bg-dark-800 rounded-lg"
+          className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
         >
-          <ArrowLeft size={20} className="text-gray-400" />
+          <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-white">Employee Details</h1>
+          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+            Employee Details
+          </h1>
           <p className="text-gray-400 mt-1">{employee.employeeCode}</p>
         </div>
       </div>
 
       {/* Profile Card */}
-      <div className="card">
-        <div className="flex items-start space-x-6">
-          <div className="w-24 h-24 bg-primary-600 rounded-full flex items-center justify-center">
+      <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
+        <div className="flex items-start gap-6">
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#A88BFF] to-[#7DB539] flex items-center justify-center shadow-lg">
             <span className="text-white font-bold text-3xl">
               {employee.firstName[0]}{employee.lastName[0]}
             </span>
@@ -76,10 +78,12 @@ const EmployeeDetail = () => {
               </div>
             </div>
             <div className="mt-4">
-              <span className={`badge ${
-                employee.status === 'active' ? 'badge-success' :
-                employee.status === 'on-leave' ? 'badge-warning' :
-                'badge-danger'
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full ${
+                employee.status === 'active' 
+                  ? 'bg-green-500/10 text-green-400 border border-green-500/30'
+                  : employee.status === 'on-leave'
+                  ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30'
+                  : 'bg-red-500/10 text-red-400 border border-red-500/30'
               }`}>
                 {employee.status}
               </span>
@@ -90,7 +94,7 @@ const EmployeeDetail = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Employment Information */}
-        <div className="card">
+        <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
             <Briefcase size={20} />
             <span>Employment Information</span>
@@ -122,7 +126,7 @@ const EmployeeDetail = () => {
         </div>
 
         {/* Salary Information */}
-        <div className="card">
+        <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
             <DollarSign size={20} />
             <span>Salary Information</span>
@@ -148,7 +152,7 @@ const EmployeeDetail = () => {
         </div>
 
         {/* Personal Information */}
-        <div className="card">
+        <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
             <Calendar size={20} />
             <span>Personal Information</span>
@@ -179,7 +183,7 @@ const EmployeeDetail = () => {
         </div>
 
         {/* Emergency Contact */}
-        <div className="card">
+        <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
             <Phone size={20} />
             <span>Emergency Contact</span>
