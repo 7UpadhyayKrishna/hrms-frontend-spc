@@ -22,8 +22,6 @@ const HRCandidatePool = () => {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
   const [filters, setFilters] = useState({
-    status: 'active',
-    processingStatus: '',
     minExperience: '',
     maxExperience: ''
   });
@@ -53,6 +51,7 @@ const HRCandidatePool = () => {
     name: resume.name || 'Unnamed Candidate',
     email: resume.email || '',
     phone: resume.phone || '',
+    currentLocation: resume.parsedData?.location || '',
     experience: {
       years: resume.parsedData?.experience?.years ?? resume.experienceYears ?? null,
       months: resume.parsedData?.experience?.months ?? resume.experienceMonths ?? null
@@ -79,6 +78,7 @@ const HRCandidatePool = () => {
     name: `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() || 'Unnamed Candidate',
     email: candidate.email || '',
     phone: candidate.phone || '',
+    currentLocation: candidate.currentLocation || '',
     experience: {
       years: candidate.experience?.years ?? null,
       months: candidate.experience?.months ?? null
@@ -117,10 +117,8 @@ const HRCandidatePool = () => {
       const resumeParams = {
         page: 1,
         limit: pageSize,
-        status: filters.status,
       };
 
-      if (filters.processingStatus) resumeParams.processingStatus = filters.processingStatus;
       if (filters.minExperience) resumeParams.minExperience = filters.minExperience;
       if (filters.maxExperience) resumeParams.maxExperience = filters.maxExperience;
 
@@ -331,6 +329,29 @@ const HRCandidatePool = () => {
     setSelectedEntry(null);
   };
 
+  const handleStageChange = async (entry, newStage) => {
+    try {
+      if (entry.type === 'candidate') {
+        // Update candidate stage
+        await api.put(`/candidates/${entry.id}`, {
+          stage: newStage
+        });
+      } else if (entry.type === 'resume') {
+        // Update resume processing status
+        await api.put(`/resume-pool/${entry.id}`, {
+          processingStatus: newStage === 'shortlisted' ? 'completed' : 'processing'
+        });
+      }
+
+      // Refresh the candidate pool
+      await fetchCandidatePool({ page: page });
+      toast.success(`Candidate moved to ${newStage} stage`);
+    } catch (err) {
+      console.error('Failed to update stage:', err);
+      toast.error('Failed to update candidate stage');
+    }
+  };
+
   const handleBulkUploadFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -503,32 +524,21 @@ const HRCandidatePool = () => {
           <div className="flex flex-wrap gap-3 items-center">
             <div className="flex items-center gap-2 text-xs text-gray-400">
               <Filter className="w-3 h-3" />
-              Filters
+              Experience Range
             </div>
-            <select
-              value={filters.processingStatus}
-              onChange={(e) => handleFilterChange('processingStatus', e.target.value)}
-              className="px-3 py-1.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-xs text-gray-200 focus:outline-none focus:border-[#A88BFF]"
-            >
-              <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="processing">Processing</option>
-              <option value="completed">Completed</option>
-              <option value="failed">Failed</option>
-            </select>
             <input
               type="number"
-              placeholder="Min Exp"
+              placeholder="Min Exp (years)"
               value={filters.minExperience}
               onChange={(e) => handleFilterChange('minExperience', e.target.value)}
-              className="w-20 px-2 py-1.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
+              className="w-24 px-2 py-1.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
             />
             <input
               type="number"
-              placeholder="Max Exp"
+              placeholder="Max Exp (years)"
               value={filters.maxExperience}
               onChange={(e) => handleFilterChange('maxExperience', e.target.value)}
-              className="w-20 px-2 py-1.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
+              className="w-24 px-2 py-1.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
             />
           </div>
         </div>
@@ -560,11 +570,11 @@ const HRCandidatePool = () => {
             <thead>
               <tr className="bg-[#232334] text-xs uppercase text-gray-400">
                 <th className="px-4 py-3 text-left">Name</th>
-                <th className="px-4 py-3 text-left">Contact</th>
-                <th className="px-4 py-3 text-left">Experience</th>
-                <th className="px-4 py-3 text-left">Key Skills</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Source</th>
+                <th className="px-4 py-3 text-left">Email</th>
+                <th className="px-4 py-3 text-left">Phone</th>
+                <th className="px-4 py-3 text-left">Location</th>
+                <th className="px-4 py-3 text-left">Skills</th>
+                <th className="px-4 py-3 text-left">Resume/CV</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -604,43 +614,27 @@ const HRCandidatePool = () => {
                               Resume
                             </span>
                           )}
-                          {entry.relevanceScore !== null && entry.relevanceScore !== undefined && (
-                            <span className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${
-                              entry.relevanceScore >= 80 ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
-                              entry.relevanceScore >= 60 ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
-                              'bg-gray-500/20 text-gray-300 border border-gray-500/30'
-                            }`}>
-                              {entry.relevanceScore}% match
-                            </span>
-                          )}
                         </span>
-                        {entry.appliedRole && (
-                          <span className="text-xs text-gray-500">Applied for: {entry.appliedRole}</span>
-                        )}
-                        {entry.source && entry.type === 'resume' && (
-                          <span className="text-xs text-gray-500">{entry.source}</span>
-                        )}
-                        {entry.matchReason && (
-                          <span className="text-xs text-green-400 mt-1" title={entry.matchReason}>
-                            {entry.matchReason.length > 60 ? entry.matchReason.substring(0, 60) + '...' : entry.matchReason}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col text-xs text-gray-300">
-                        {entry.email && <span>{entry.email}</span>}
-                        {entry.phone && <span className="text-gray-500">{entry.phone}</span>}
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-xs text-gray-300">
-                        {getExperienceString(entry)}
+                        {entry.email || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs text-gray-300">
+                        {entry.phone || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs text-gray-300">
+                        {entry.currentLocation || 'N/A'}
                       </span>
                     </td>
                     <td className="px-4 py-3 max-w-xs">
                       <div className="flex flex-wrap gap-1">
-                        {(entry.skills || []).slice(0, 5).map((skill, idx) => (
+                        {(entry.skills || []).slice(0, 3).map((skill, idx) => (
                           <span
                             key={idx}
                             className="px-2 py-0.5 rounded-full bg-[#1E1E2A] border border-gray-700 text-[11px] text-gray-200"
@@ -648,40 +642,61 @@ const HRCandidatePool = () => {
                             {skill}
                           </span>
                         ))}
-                        {(entry.skills || []).length > 5 && (
+                        {(entry.skills || []).length > 3 && (
                           <span className="text-[11px] text-gray-500">
-                            +{(entry.skills.length - 5)} more
+                            +{(entry.skills.length - 3)} more
                           </span>
+                        )}
+                        {(!entry.skills || entry.skills.length === 0) && (
+                          <span className="text-[11px] text-gray-500">No skills</span>
                         )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] ${getStatusBadge(entry)}`}
-                      >
-                        {entry.statusLabel || 'pending'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {getEntryTags(entry).slice(0, 3).map((tag, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-0.5 rounded-full bg-[#1E1E2A] border border-gray-700 text-[11px] text-gray-400"
+                      {entry.resumeUrl ? (
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={entry.resumeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-green-500/10 border border-green-500/30 text-xs text-green-300 hover:bg-green-500/20 hover:border-green-500/50 transition-colors"
+                            title={`View resume for ${entry.name}`}
                           >
-                            {tag}
+                            <FileText className="w-3 h-3" />
+                            View
+                          </a>
+                          <span className="text-xs text-gray-500">
+                            {entry.original?.resume?.mimetype?.includes('pdf') ? 'PDF' :
+                             entry.original?.resume?.mimetype?.includes('word') ? 'DOC' : 'File'}
                           </span>
-                        ))}
-                      </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-500">No resume</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => openEntryModal(entry)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#1E1E2A] border border-gray-700 text-xs text-gray-200 hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors"
-                      >
-                        <FileText className="w-3 h-3" />
-                        View
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <select
+                          className="px-2 py-1 bg-[#1E1E2A] border border-gray-700 rounded text-xs text-gray-200 focus:outline-none focus:border-[#A88BFF]"
+                          defaultValue={entry.stage || 'applied'}
+                          onChange={(e) => handleStageChange(entry, e.target.value)}
+                        >
+                          <option value="applied">Applied</option>
+                          <option value="shortlisted">Shortlisted</option>
+                          <option value="interview-scheduled">Interview</option>
+                          <option value="interviewed">Interviewed</option>
+                          <option value="offer-extended">Offer Extended</option>
+                          <option value="offer-accepted">Offer Accepted</option>
+                          <option value="rejected">Rejected</option>
+                          <option value="onboarded">Onboarded</option>
+                        </select>
+                        <button
+                          onClick={() => openEntryModal(entry)}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-700 text-xs text-gray-200 hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors"
+                        >
+                          <FileText className="w-3 h-3" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -1041,6 +1056,24 @@ const HRCandidatePool = () => {
                     )}
                   </div>
                 </div>
+
+                {selectedEntry.resumeUrl && (
+                  <div className="bg-[#1E1E2A] border border-gray-800 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-white mb-3">Resume/CV</h3>
+                    <a
+                      href={selectedEntry.resumeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-300 hover:bg-green-500/20 hover:border-green-500/50 transition-colors text-sm"
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span>View Resume</span>
+                    </a>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Opens resume in a new tab
+                    </p>
+                  </div>
+                )}
 
                 {selectedEntry.type === 'resume' && selectedEntry.original?.aiAnalysis && (
                   <div className="bg-[#1E1E2A] border border-gray-800 rounded-xl p-4">
