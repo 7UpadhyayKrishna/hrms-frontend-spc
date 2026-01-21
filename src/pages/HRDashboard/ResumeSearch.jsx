@@ -4,20 +4,36 @@ import api from '../../api/axios';
 
 const ResumeSearch = () => {
   const [searchCriteria, setSearchCriteria] = useState({
+    // Job Basic Info
+    jobTitle: '',
+    companyName: '',
+    location: '',
+    employmentType: 'full-time',
+
+    // Experience Requirements
+    experienceMin: 0,
+    experienceMax: 5,
+
+    // Skills Requirements
     requiredSkills: [],
     preferredSkills: [],
-    minimumExperience: 0,
-    candidateIds: [],
-    maxResults: 10,
-    includeAllCandidates: false,
-    // CTC filters
-    currentCTCMin: '',
-    currentCTCMax: '',
-    expectedCTCMin: '',
-    expectedCTCMax: '',
-    // Geolocation filters
-    currentLocation: '',
-    preferredLocation: ''
+
+    // Salary Range
+    salaryMin: '',
+    salaryMax: '',
+    salaryCurrency: 'INR',
+
+    // Location Preferences
+    jobLocation: '',
+    preferredLocations: [],
+    remoteWork: 'on-site',
+
+    // Education Requirements
+    educationRequirements: [],
+
+    // Search Settings
+    maxResults: 20,
+    minScore: 0
   });
   
   const [skillInput, setSkillInput] = useState('');
@@ -69,49 +85,79 @@ const ResumeSearch = () => {
     setLoading(true);
     setError('');
     setResults([]);
-    
+
     try {
-      // Build request payload with CTC and location filters
-      const payload = {
-        requiredSkills: searchCriteria.requiredSkills,
-        preferredSkills: searchCriteria.preferredSkills,
-        minimumExperience: searchCriteria.minimumExperience,
-        candidateIds: searchCriteria.candidateIds,
-        maxResults: searchCriteria.maxResults,
-        includeAllCandidates: searchCriteria.includeAllCandidates
+      // Validate required fields
+      if (searchCriteria.requiredSkills.length === 0) {
+        setError('Please add at least one required skill');
+        setLoading(false);
+        return;
+      }
+
+      if (!searchCriteria.jobTitle.trim()) {
+        setError('Please enter a job title');
+        setLoading(false);
+        return;
+      }
+
+      // Build JD-like payload for the backend matching service
+      const jdPayload = {
+        jobTitle: searchCriteria.jobTitle.trim(),
+        companyName: searchCriteria.companyName.trim() || 'Company',
+        location: searchCriteria.location.trim() || 'Remote',
+        employmentType: searchCriteria.employmentType,
+        parsedData: {
+          experienceRequired: {
+            minYears: searchCriteria.experienceMin,
+            maxYears: searchCriteria.experienceMax
+          },
+          requiredSkillsSimple: searchCriteria.requiredSkills,
+          preferredSkillsSimple: searchCriteria.preferredSkills,
+          jobLocation: searchCriteria.jobLocation,
+          preferredLocations: searchCriteria.preferredLocations,
+          remoteWork: searchCriteria.remoteWork,
+          salaryRange: {
+            min: searchCriteria.salaryMin ? Number(searchCriteria.salaryMin) : null,
+            max: searchCriteria.salaryMax ? Number(searchCriteria.salaryMax) : null,
+            currency: searchCriteria.salaryCurrency
+          },
+          educationRequirementsSimple: searchCriteria.educationRequirements
+        }
       };
 
-      // Add CTC filters if provided
-      if (searchCriteria.currentCTCMin) {
-        payload.currentCTCMin = Number(searchCriteria.currentCTCMin);
-      }
-      if (searchCriteria.currentCTCMax) {
-        payload.currentCTCMax = Number(searchCriteria.currentCTCMax);
-      }
-      if (searchCriteria.expectedCTCMin) {
-        payload.expectedCTCMin = Number(searchCriteria.expectedCTCMin);
-      }
-      if (searchCriteria.expectedCTCMax) {
-        payload.expectedCTCMax = Number(searchCriteria.expectedCTCMax);
-      }
+      // Call the JD-based candidate search API
+      const response = await api.get('/candidates/search-by-jd', {
+        params: {
+          jdData: JSON.stringify(jdPayload),
+          minScore: searchCriteria.minScore,
+          maxResults: searchCriteria.maxResults
+        }
+      });
 
-      // Add location filters if provided
-      if (searchCriteria.currentLocation) {
-        payload.currentLocation = searchCriteria.currentLocation;
-      }
-      if (searchCriteria.preferredLocation) {
-        payload.preferredLocation = searchCriteria.preferredLocation;
-      }
-
-      const response = await api.post('/ai-analysis/resume-search', payload);
-      
       if (response.data.success) {
-        setResults(response.data.data);
+        // Transform the response to match the expected format
+        const transformedResults = response.data.data.matches.map(match => ({
+          candidateId: match.candidateId,
+          name: match.candidate?.name || `${match.candidate?.firstName || 'Unknown'} ${match.candidate?.lastName || ''}`.trim(),
+          email: match.candidate?.email || 'N/A',
+          phone: match.candidate?.phone || 'N/A',
+          score: match.matchScore,
+          experience: `${match.candidate?.experience?.years || 0} years ${match.candidate?.experience?.months || 0} months`,
+          currentCompany: match.candidate?.currentCompany || 'N/A',
+          currentDesignation: match.candidate?.currentDesignation || 'N/A',
+          location: match.candidate?.currentLocation || 'N/A',
+          matchedSkills: match.matchedSkills?.map(ms => ms.skill) || [],
+          allSkills: match.candidate?.skills || [],
+          summary: `Overall fit: ${match.overallFit}. Skills match: ${match.skillMatches?.length || 0} skills. Experience: ${match.experienceMatch?.matchType || 'unknown'}. Location: ${match.locationMatch?.matchType || 'unknown'}.`
+        }));
+
+        setResults(transformedResults);
       } else {
         setError(response.data.message || 'Search failed');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to search resumes');
+      console.error('Search error:', err);
+      setError(err.response?.data?.message || 'Failed to search candidates');
     } finally {
       setLoading(false);
     }
@@ -135,22 +181,114 @@ const ResumeSearch = () => {
     <div className="min-h-screen bg-[#1E1E2A] p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Resume Search & Shortlisting</h1>
-        <p className="text-gray-400">AI-powered candidate screening and matching</p>
+        <h1 className="text-3xl font-bold text-white mb-2">JD-Based Candidate Matching</h1>
+        <p className="text-gray-400">Create job descriptions and find perfectly matched candidates from your talent pool</p>
       </div>
 
       {/* Search Form */}
       <div className="bg-[#2A2A3A] rounded-2xl border border-gray-800 p-6 mb-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-white">Search Criteria</h2>
+          <h2 className="text-xl font-bold text-white">Job Description Requirements</h2>
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="flex items-center gap-2 text-[#A88BFF] hover:text-[#B89CFF] transition-colors"
           >
             <Filter className="w-4 h-4" />
-            {showFilters ? 'Hide Filters' : 'Show Filters'}
+            {showFilters ? 'Hide Advanced' : 'Show Advanced'}
             <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
           </button>
+        </div>
+
+        {/* Basic Job Information */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Job Title <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={searchCriteria.jobTitle}
+              onChange={(e) => setSearchCriteria(prev => ({
+                ...prev,
+                jobTitle: e.target.value
+              }))}
+              placeholder="e.g., Senior Java Developer"
+              className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Company Name
+            </label>
+            <input
+              type="text"
+              value={searchCriteria.companyName}
+              onChange={(e) => setSearchCriteria(prev => ({
+                ...prev,
+                companyName: e.target.value
+              }))}
+              placeholder="e.g., TechCorp Solutions"
+              className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
+            />
+          </div>
+        </div>
+
+        {/* Job Location */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Job Location
+          </label>
+          <input
+            type="text"
+            value={searchCriteria.jobLocation}
+            onChange={(e) => setSearchCriteria(prev => ({
+              ...prev,
+              jobLocation: e.target.value
+            }))}
+            placeholder="e.g., Noida, Mumbai, Bangalore"
+            className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
+          />
+        </div>
+
+        {/* Experience Requirements */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Experience Required <span className="text-red-400">*</span>
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Minimum Years</label>
+              <input
+                type="number"
+                min="0"
+                max="20"
+                value={searchCriteria.experienceMin}
+                onChange={(e) => setSearchCriteria(prev => ({
+                  ...prev,
+                  experienceMin: parseInt(e.target.value) || 0
+                }))}
+                className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Maximum Years</label>
+              <input
+                type="number"
+                min="0"
+                max="30"
+                value={searchCriteria.experienceMax}
+                onChange={(e) => setSearchCriteria(prev => ({
+                  ...prev,
+                  experienceMax: parseInt(e.target.value) || 10
+                }))}
+                className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            Current: {searchCriteria.experienceMin} - {searchCriteria.experienceMax} years experience required
+          </p>
         </div>
 
         {/* Required Skills */}
@@ -164,7 +302,7 @@ const ResumeSearch = () => {
               value={skillInput}
               onChange={(e) => setSkillInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && addSkill(skillInput, 'required')}
-              placeholder="Add required skill (e.g., React, Node.js)"
+              placeholder="Add required skill (e.g., Java, Spring, React)"
               className="flex-1 px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
             />
             <button
@@ -174,7 +312,7 @@ const ResumeSearch = () => {
               <Plus className="w-4 h-4" />
             </button>
           </div>
-          
+
           {/* Skill Pills */}
           <div className="flex flex-wrap gap-2">
             {searchCriteria.requiredSkills.map(skill => (
@@ -192,13 +330,13 @@ const ResumeSearch = () => {
               </span>
             ))}
           </div>
-          
+
           {/* Common Skills Suggestions */}
           {searchCriteria.requiredSkills.length === 0 && (
             <div className="mt-3">
-              <p className="text-xs text-gray-500 mb-2">Common skills:</p>
+              <p className="text-xs text-gray-500 mb-2">Common technical skills:</p>
               <div className="flex flex-wrap gap-2">
-                {commonSkills.slice(0, 8).map(skill => (
+                {commonSkills.slice(0, 12).map(skill => (
                   <button
                     key={skill}
                     onClick={() => addSkill(skill, 'required')}
@@ -223,7 +361,7 @@ const ResumeSearch = () => {
               value={preferredSkillInput}
               onChange={(e) => setPreferredSkillInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && addSkill(preferredSkillInput, 'preferred')}
-              placeholder="Add preferred skill"
+              placeholder="Add preferred skill (e.g., Docker, AWS, Angular)"
               className="flex-1 px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
             />
             <button
@@ -233,7 +371,7 @@ const ResumeSearch = () => {
               <Plus className="w-4 h-4" />
             </button>
           </div>
-          
+
           <div className="flex flex-wrap gap-2">
             {searchCriteria.preferredSkills.map(skill => (
               <span
@@ -252,27 +390,155 @@ const ResumeSearch = () => {
           </div>
         </div>
 
-        {/* Additional Filters */}
+        {/* Salary Range */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Salary Range (Annual)
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Minimum (₹)</label>
+              <input
+                type="number"
+                min="0"
+                value={searchCriteria.salaryMin}
+                onChange={(e) => setSearchCriteria(prev => ({
+                  ...prev,
+                  salaryMin: e.target.value
+                }))}
+                placeholder="e.g., 500000"
+                className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Maximum (₹)</label>
+              <input
+                type="number"
+                min="0"
+                value={searchCriteria.salaryMax}
+                onChange={(e) => setSearchCriteria(prev => ({
+                  ...prev,
+                  salaryMax: e.target.value
+                }))}
+                placeholder="e.g., 1500000"
+                className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Currency</label>
+              <select
+                value={searchCriteria.salaryCurrency}
+                onChange={(e) => setSearchCriteria(prev => ({
+                  ...prev,
+                  salaryCurrency: e.target.value
+                }))}
+                className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-[#A88BFF]"
+              >
+                <option value="INR">INR (₹)</option>
+                <option value="USD">USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+              </select>
+            </div>
+          </div>
+          {searchCriteria.salaryMin && searchCriteria.salaryMax && (
+            <p className="text-xs text-gray-500 mt-2">
+              Salary Range: ₹{Number(searchCriteria.salaryMin).toLocaleString()} - ₹{Number(searchCriteria.salaryMax).toLocaleString()} per annum
+            </p>
+          )}
+        </div>
+
+        {/* Advanced Filters */}
         {showFilters && (
           <div className="space-y-6 mb-6">
-            {/* Experience and Results Row */}
+            {/* Employment Type and Remote Work */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Employment Type
+                </label>
+                <select
+                  value={searchCriteria.employmentType}
+                  onChange={(e) => setSearchCriteria(prev => ({
+                    ...prev,
+                    employmentType: e.target.value
+                  }))}
+                  className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-[#A88BFF]"
+                >
+                  <option value="full-time">Full Time</option>
+                  <option value="part-time">Part Time</option>
+                  <option value="contract">Contract</option>
+                  <option value="intern">Internship</option>
+                  <option value="freelance">Freelance</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Work Type
+                </label>
+                <select
+                  value={searchCriteria.remoteWork}
+                  onChange={(e) => setSearchCriteria(prev => ({
+                    ...prev,
+                    remoteWork: e.target.value
+                  }))}
+                  className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-[#A88BFF]"
+                >
+                  <option value="on-site">On-site</option>
+                  <option value="remote">Remote</option>
+                  <option value="hybrid">Hybrid</option>
+                  <option value="flexible">Flexible</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Education Requirements */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Education Requirements (Optional)
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {['Bachelor of Technology', 'Bachelor of Engineering', 'Master of Computer Applications', 'Bachelor of Science', 'Master of Technology'].map(edu => (
+                  <label key={edu} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={searchCriteria.educationRequirements.includes(edu)}
+                      onChange={(e) => {
+                        const current = searchCriteria.educationRequirements;
+                        const updated = e.target.checked
+                          ? [...current, edu]
+                          : current.filter(item => item !== edu);
+                        setSearchCriteria(prev => ({
+                          ...prev,
+                          educationRequirements: updated
+                        }));
+                      }}
+                      className="w-4 h-4 text-[#A88BFF] bg-[#1E1E2A] border-gray-700 rounded focus:ring-[#A88BFF]"
+                    />
+                    {edu}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Search Settings */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Minimum Experience (years)
+                  Minimum Match Score (%)
                 </label>
                 <input
                   type="number"
                   min="0"
-                  value={searchCriteria.minimumExperience}
+                  max="100"
+                  value={searchCriteria.minScore}
                   onChange={(e) => setSearchCriteria(prev => ({
                     ...prev,
-                    minimumExperience: parseInt(e.target.value) || 0
+                    minScore: parseInt(e.target.value) || 0
                   }))}
                   className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Max Results
@@ -285,134 +551,23 @@ const ResumeSearch = () => {
                   }))}
                   className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-[#A88BFF]"
                 >
-                  <option value={5}>5 Results</option>
                   <option value={10}>10 Results</option>
                   <option value={20}>20 Results</option>
                   <option value={50}>50 Results</option>
+                  <option value={100}>100 Results</option>
                 </select>
               </div>
-              
-              <div className="flex items-end">
-                <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={searchCriteria.includeAllCandidates}
-                    onChange={(e) => setSearchCriteria(prev => ({
-                      ...prev,
-                      includeAllCandidates: e.target.checked
-                    }))}
-                    className="w-4 h-4 text-[#A88BFF] bg-[#1E1E2A] border-gray-700 rounded focus:ring-[#A88BFF]"
-                  />
-                  Search all candidates
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Results Sorting
                 </label>
-              </div>
-            </div>
-
-            {/* CTC Filters Row */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-300 mb-3">CTC Filters</h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Current CTC Min (₹)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={searchCriteria.currentCTCMin}
-                    onChange={(e) => setSearchCriteria(prev => ({
-                      ...prev,
-                      currentCTCMin: e.target.value
-                    }))}
-                    placeholder="Min"
-                    className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Current CTC Max (₹)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={searchCriteria.currentCTCMax}
-                    onChange={(e) => setSearchCriteria(prev => ({
-                      ...prev,
-                      currentCTCMax: e.target.value
-                    }))}
-                    placeholder="Max"
-                    className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Expected CTC Min (₹)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={searchCriteria.expectedCTCMin}
-                    onChange={(e) => setSearchCriteria(prev => ({
-                      ...prev,
-                      expectedCTCMin: e.target.value
-                    }))}
-                    placeholder="Min"
-                    className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Expected CTC Max (₹)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={searchCriteria.expectedCTCMax}
-                    onChange={(e) => setSearchCriteria(prev => ({
-                      ...prev,
-                      expectedCTCMax: e.target.value
-                    }))}
-                    placeholder="Max"
-                    className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Geolocation Filters Row */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-300 mb-3">Location Filters</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Current Location
-                  </label>
-                  <input
-                    type="text"
-                    value={searchCriteria.currentLocation}
-                    onChange={(e) => setSearchCriteria(prev => ({
-                      ...prev,
-                      currentLocation: e.target.value
-                    }))}
-                    placeholder="e.g., Mumbai, Bangalore, Delhi"
-                    className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Preferred Location
-                  </label>
-                  <input
-                    type="text"
-                    value={searchCriteria.preferredLocation}
-                    onChange={(e) => setSearchCriteria(prev => ({
-                      ...prev,
-                      preferredLocation: e.target.value
-                    }))}
-                    placeholder="e.g., Mumbai, Bangalore, Delhi"
-                    className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
-                  />
-                </div>
+                <select
+                  value="score"
+                  className="w-full px-4 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-[#A88BFF]"
+                >
+                  <option value="score">By Match Score (Best First)</option>
+                </select>
               </div>
             </div>
           </div>
@@ -421,18 +576,18 @@ const ResumeSearch = () => {
         {/* Search Button */}
         <button
           onClick={handleSearch}
-          disabled={loading || searchCriteria.requiredSkills.length === 0}
+          disabled={loading || searchCriteria.requiredSkills.length === 0 || !searchCriteria.jobTitle.trim()}
           className="w-full py-3 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Searching Candidates...
+              Finding Best Candidates...
             </>
           ) : (
             <>
               <Search className="w-4 h-4" />
-              Search & Shortlist Candidates
+              Find & Match Candidates
             </>
           )}
         </button>
@@ -449,8 +604,8 @@ const ResumeSearch = () => {
       {results.length > 0 && (
         <div className="bg-[#2A2A3A] rounded-2xl border border-gray-800 p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-white">Shortlisted Candidates</h2>
-            <span className="text-sm text-gray-400">{results.length} candidates found</span>
+            <h2 className="text-xl font-bold text-white">Matched Candidates</h2>
+            <span className="text-sm text-gray-400">{results.length} candidates matched your JD requirements</span>
           </div>
 
           <div className="space-y-4">
