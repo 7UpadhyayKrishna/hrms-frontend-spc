@@ -42,5 +42,6 @@ jobs:
             cd /home/ec2-user/app
             docker-compose -p hrms-staging -f docker-compose.staging.yml pull frontend
             docker-compose -p hrms-staging -f docker-compose.staging.yml up -d frontend
+            docker image prune -af
           EOF
 
