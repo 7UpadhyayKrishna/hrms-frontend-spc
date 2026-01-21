@@ -62,56 +62,72 @@ const HRCandidatePool = () => {
 
   const pageSize = 20;
 
-  const normalizeResumeEntry = (resume = {}) => ({
-    id: resume._id,
-    type: 'resume',
-    name: resume.name || 'Unnamed Candidate',
-    email: resume.email || '',
-    phone: resume.phone || '',
-    currentLocation: resume.parsedData?.location || '',
-    experience: {
-      years: resume.parsedData?.experience?.years ?? resume.experienceYears ?? null,
-      months: resume.parsedData?.experience?.months ?? resume.experienceMonths ?? null
-    },
-    skills: resume.parsedData?.skills || [],
-    statusLabel: resume.processingStatus || 'pending',
-    statusType: 'processing',
-    tags: resume.tags || [],
-    source: resume.fileName || 'Resume Upload',
-    rawText: resume.rawText || '',
-    createdAt: resume.createdAt || resume.updatedAt,
-    appliedRole: null,
-    stage: null,
-    // Intelligent search metadata
-    relevanceScore: resume.relevanceScore || null,
-    matchedSkills: resume.matchedSkills || [],
-    matchReason: resume.matchReason || null,
-    original: resume
-  });
+  const normalizeResumeEntry = (resume = {}) => {
+    const normalized = {
+      id: resume._id,
+      type: 'resume',
+      name: resume.name || 'Unnamed Candidate',
+      email: resume.email || '',
+      phone: resume.phone || '',
+      currentLocation: resume.parsedData?.location || '',
+      experience: {
+        years: resume.parsedData?.experience?.years ?? resume.experienceYears ?? null,
+        months: resume.parsedData?.experience?.months ?? resume.experienceMonths ?? null
+      },
+      skills: resume.parsedData?.skills || [],
+      statusLabel: resume.processingStatus || 'pending',
+      statusType: 'processing',
+      tags: resume.tags || [],
+      source: resume.fileName || 'Resume Upload',
+      rawText: resume.rawText || '',
+      createdAt: resume.createdAt || resume.updatedAt,
+      appliedRole: null,
+      stage: null,
+      // Intelligent search metadata
+      relevanceScore: resume.relevanceScore || null,
+      matchedSkills: resume.matchedSkills || [],
+      matchReason: resume.matchReason || null,
+      original: resume
+    };
 
-  const normalizeCandidateEntry = (candidate = {}) => ({
-    id: candidate._id,
-    type: 'candidate',
-    name: `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() || 'Unnamed Candidate',
-    email: candidate.email || '',
-    phone: candidate.phone || '',
-    currentLocation: candidate.currentLocation || '',
-    experience: {
-      years: candidate.experience?.years ?? null,
-      months: candidate.experience?.months ?? null
-    },
-    skills: Array.isArray(candidate.skills) ? candidate.skills : [],
-    statusLabel: candidate.stage || candidate.status || 'applied',
-    statusType: 'stage',
-    tags: [candidate.source, candidate.appliedFor?.title].filter(Boolean),
-    source: candidate.appliedFor?.title ? `Applied for ${candidate.appliedFor.title}` : 'Job Applicant',
-    rawText: '',
-    createdAt: candidate.createdAt,
-    appliedRole: candidate.appliedFor?.title || '',
-    stage: candidate.stage || '',
-    resumeUrl: candidate.resume?.url,
-    original: candidate
-  });
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/86de9070-b7f8-4b6a-9381-ebd3f3dce7a9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HRCandidatePool.jsx:normalizeResumeEntry',message:'Resume entry normalized',data:{id:resume._id,name:resume.name,rawSkills:resume.parsedData?.skills,normalizedSkills:normalized.skills,parsedDataExists:!!resume.parsedData},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
+    // #endregion
+
+    return normalized;
+  };
+
+  const normalizeCandidateEntry = (candidate = {}) => {
+    const normalized = {
+      id: candidate._id,
+      type: 'candidate',
+      name: `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() || 'Unnamed Candidate',
+      email: candidate.email || '',
+      phone: candidate.phone || '',
+      currentLocation: candidate.currentLocation || '',
+      experience: {
+        years: candidate.experience?.years ?? null,
+        months: candidate.experience?.months ?? null
+      },
+      skills: Array.isArray(candidate.skills) ? candidate.skills : [],
+      statusLabel: candidate.stage || candidate.status || 'applied',
+      statusType: 'stage',
+      tags: [candidate.source, candidate.appliedFor?.title].filter(Boolean),
+      source: candidate.appliedFor?.title ? `Applied for ${candidate.appliedFor.title}` : 'Job Applicant',
+      rawText: '',
+      createdAt: candidate.createdAt,
+      appliedRole: candidate.appliedFor?.title || '',
+      stage: candidate.stage || '',
+      resumeUrl: candidate.resume?.url,
+      original: candidate
+    };
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/86de9070-b7f8-4b6a-9381-ebd3f3dce7a9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HRCandidatePool.jsx:normalizeCandidateEntry',message:'Candidate entry normalized',data:{id:candidate._id,name:candidate.firstName+' '+candidate.lastName,rawSkills:candidate.skills,normalizedSkills:normalized.skills,resumeUrl:candidate.resume?.url},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
+    // #endregion
+
+    return normalized;
+  };
 
   const applyPagination = (dataset, targetPage = 1) => {
     const total = dataset.length;
@@ -161,8 +177,16 @@ const HRCandidatePool = () => {
       const resumeData = Array.isArray(resumeResponse?.data?.data) ? resumeResponse.data.data : [];
       const candidateData = Array.isArray(candidateResponse?.data?.data) ? candidateResponse.data.data : [];
 
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/86de9070-b7f8-4b6a-9381-ebd3f3dce7a9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HRCandidatePool.jsx:fetchCandidatePool',message:'Raw API responses received',data:{resumeDataCount:resumeData.length,candidateDataCount:candidateData.length,firstResume:resumeData[0],firstCandidate:candidateData[0]},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
+      // #endregion
+
       const resumeEntries = resumeData.map(normalizeResumeEntry);
       const candidateEntries = candidateData.map(normalizeCandidateEntry);
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/86de9070-b7f8-4b6a-9381-ebd3f3dce7a9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HRCandidatePool.jsx:fetchCandidatePool',message:'Normalized entries created',data:{resumeEntriesCount:resumeEntries.length,candidateEntriesCount:candidateEntries.length,firstResumeEntry:resumeEntries[0],firstCandidateEntry:candidateEntries[0]},timestamp:Date.now(),sessionId:'debug-session'})}).catch(()=>{});
+      // #endregion
 
       // Include JD-matched candidates if JD search was performed
       let jdMatchedEntries = [];
