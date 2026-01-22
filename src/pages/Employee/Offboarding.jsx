@@ -219,10 +219,6 @@ const Offboarding = () => {
                           emp.isExEmployee === true || 
                           emp.isActive === false;
         
-        if (isExcluded && emp.isExEmployee) {
-          console.log(`Excluding ex-employee from offboarding dropdown: ${emp.employeeCode || empId}`, emp);
-        }
-        
         return !isExcluded;
       });
       
