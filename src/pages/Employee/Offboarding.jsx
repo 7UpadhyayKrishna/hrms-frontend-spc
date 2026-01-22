@@ -184,7 +184,7 @@ const Offboarding = () => {
 
   const fetchEmployees = async () => {
     try {
-      // Fetch all employees
+      // Fetch all employees (backend already filters out ex-employees, but we'll double-check)
       const res = await api.get('/employees');
       const allEmployees = res?.data?.data || [];
       
@@ -210,12 +210,23 @@ const Offboarding = () => {
         }
       });
       
-      // Filter out employees who are already in offboarding
+      // Filter out employees who are already in offboarding AND ex-employees (safety check)
       const availableEmployees = allEmployees.filter(emp => {
         const empId = emp._id?.toString();
-        return empId && !offboardingEmployeeIds.has(empId);
+        // Exclude if: already in offboarding, is ex-employee, or is not active
+        const isExcluded = !empId || 
+                          offboardingEmployeeIds.has(empId) || 
+                          emp.isExEmployee === true || 
+                          emp.isActive === false;
+        
+        if (isExcluded && emp.isExEmployee) {
+          console.log(`Excluding ex-employee from offboarding dropdown: ${emp.employeeCode || empId}`, emp);
+        }
+        
+        return !isExcluded;
       });
       
+      console.log(`Employee filtering: ${allEmployees.length} total, ${availableEmployees.length} available after filtering`);
       setEmployees(availableEmployees);
       
       if (availableEmployees.length === 0) {

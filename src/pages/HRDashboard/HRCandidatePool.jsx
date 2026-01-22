@@ -109,7 +109,7 @@ const HRCandidatePool = () => {
       statusLabel: candidate.stage || candidate.status || 'applied',
       statusType: 'stage',
       tags: [candidate.source, candidate.appliedFor?.title].filter(Boolean),
-      source: candidate.appliedFor?.title ? `Applied for ${candidate.appliedFor.title}` : 'Job Applicant',
+      source: candidate.isExEmployee ? 'Ex-Employee' : (candidate.appliedFor?.title ? `Applied for ${candidate.appliedFor.title}` : 'Job Applicant'),
       rawText: '',
       createdAt: candidate.createdAt,
       appliedRole: candidate.appliedFor?.title || '',
@@ -547,7 +547,7 @@ const HRCandidatePool = () => {
     if (!entry) return [];
     if (entry.type === 'candidate') {
       const tags = entry.tags || [];
-      return tags.length ? tags : ['Job Applicant'];
+      return tags.length ? tags : [entry.original?.isExEmployee ? 'Ex-Employee' : 'Job Applicant'];
     }
     return entry.tags || [];
   };
@@ -924,8 +924,12 @@ const HRCandidatePool = () => {
                             </span>
                           )}
                           {entry.type === 'candidate' && !entry.isJDMatched && (
-                            <span className="px-2 py-0.5 text-[10px] rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/30">
-                              Applicant
+                            <span className={`px-2 py-0.5 text-[10px] rounded-full border ${
+                              entry.original?.isExEmployee 
+                                ? 'bg-orange-500/10 text-orange-300 border-orange-500/30' 
+                                : 'bg-blue-500/10 text-blue-300 border-blue-500/30'
+                            }`}>
+                              {entry.original?.isExEmployee ? 'Ex-Employee' : 'Applicant'}
                             </span>
                           )}
                           {entry.type === 'resume' && (
@@ -1345,8 +1349,8 @@ const HRCandidatePool = () => {
                 <p className="text-xs text-gray-400 mt-1">
                   {selectedEntry.type === 'candidate'
                     ? selectedEntry.appliedRole
-                      ? `Job Applicant • Applied for ${selectedEntry.appliedRole}`
-                      : 'Job Applicant'
+                      ? (selectedEntry.original?.isExEmployee ? 'Ex-Employee' : `Job Applicant • Applied for ${selectedEntry.appliedRole}`)
+                      : (selectedEntry.original?.isExEmployee ? 'Ex-Employee' : 'Job Applicant')
                     : selectedEntry.source || 'Resume Pool'}
                 </p>
               </div>
