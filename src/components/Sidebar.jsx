@@ -16,6 +16,7 @@ import {
   ChevronRight,
   ShieldCheck,
   Building,
+  History,
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
@@ -134,6 +135,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         label: 'HR Management',
         icon: Users,
         path: '/hr-management'
+      },
+      {
+        key: 'hr-activity-history',
+        label: 'HR Activity History',
+        icon: History,
+        path: '/hr-activity-history'
       },
       {
         key: 'employees',

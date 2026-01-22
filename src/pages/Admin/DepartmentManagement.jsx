@@ -9,7 +9,8 @@ import {
   Search,
   X,
   Save,
-  User
+  User,
+  Eye
 } from 'lucide-react';
 import { getDepartments, createDepartment, updateDepartment, deleteDepartment } from '../../api/department';
 import { getEmployees, updateEmployee } from '../../api/hr';
@@ -21,6 +22,7 @@ const DepartmentManagement = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showViewEmployeesModal, setShowViewEmployeesModal] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
@@ -112,6 +114,11 @@ const DepartmentManagement = () => {
   const openAssignModal = (department) => {
     setSelectedDepartment(department);
     setShowAssignModal(true);
+  };
+
+  const openViewEmployeesModal = (department) => {
+    setSelectedDepartment(department);
+    setShowViewEmployeesModal(true);
   };
 
   const handleAssignEmployee = async (employeeId, departmentId) => {
@@ -226,13 +233,22 @@ const DepartmentManagement = () => {
               </div>
             </div>
 
-            <button
-              onClick={() => openAssignModal(department)}
-              className="w-full bg-[#A88BFF]/20 hover:bg-[#A88BFF]/30 text-[#A88BFF] py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
-            >
-              <Users className="h-4 w-4" />
-              Assign Employees
-            </button>
+            <div className="flex flex-col items-end gap-2">
+              <button
+                onClick={() => openAssignModal(department)}
+                className="bg-[#A88BFF]/20 hover:bg-[#A88BFF]/30 text-[#A88BFF] py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition-colors text-sm"
+              >
+                <Users className="h-3.5 w-3.5" />
+                Assign Employees
+              </button>
+              <button
+                onClick={() => openViewEmployeesModal(department)}
+                className="bg-[#7DB539]/20 hover:bg-[#7DB539]/30 text-[#7DB539] py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition-colors text-sm"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                View Employees
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -419,6 +435,75 @@ const DepartmentManagement = () => {
         </div>
       )}
 
+      {/* View Employees Modal */}
+      {showViewEmployeesModal && selectedDepartment && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white">
+                Employees in {selectedDepartment.name}
+              </h2>
+              <button
+                onClick={() => setShowViewEmployeesModal(false)}
+                className="text-gray-400 hover:text-white p-1"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {employees.filter(employee => 
+                employee.departmentId === selectedDepartment._id || 
+                employee.department === selectedDepartment._id ||
+                (employee.department?._id && employee.department._id === selectedDepartment._id)
+              ).length > 0 ? (
+                employees
+                  .filter(employee => 
+                    employee.departmentId === selectedDepartment._id || 
+                    employee.department === selectedDepartment._id ||
+                    (employee.department?._id && employee.department._id === selectedDepartment._id)
+                  )
+                  .map((employee) => (
+                    <div key={employee._id} className="flex items-center justify-between p-4 bg-[#1E1E2A] rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-[#A88BFF] to-[#7DB539] rounded-full flex items-center justify-center">
+                          <span className="text-white font-medium text-sm">
+                            {employee.firstName?.[0]}{employee.lastName?.[0]}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-white font-medium">
+                            {employee.firstName} {employee.lastName}
+                          </p>
+                          <p className="text-gray-400 text-sm">{employee.designation}</p>
+                          <p className="text-gray-500 text-xs">{employee.email}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-gray-400 text-sm">{employee.employeeCode || 'N/A'}</p>
+                      </div>
+                    </div>
+                  ))
+              ) : (
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-400">No employees assigned to this department</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-6">
+              <button
+                onClick={() => setShowViewEmployeesModal(false)}
+                className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Assign Employees Modal */}
       {showAssignModal && selectedDepartment && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -436,7 +521,7 @@ const DepartmentManagement = () => {
             </div>
 
             <div className="space-y-4">
-              {employees.map((employee) => (
+              {employees.filter(employee => !employee.departmentId).map((employee) => (
                 <div key={employee._id} className="flex items-center justify-between p-4 bg-[#1E1E2A] rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-[#A88BFF] to-[#7DB539] rounded-full flex items-center justify-center">

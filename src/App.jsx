@@ -25,6 +25,7 @@ import Unauthorized from './pages/Unauthorized';
 import Dashboard from './pages/Dashboard';
 import CandidateList from './pages/Candidates/CandidateList';
 import HRManagement from './pages/Admin/HRManagement';
+import HRActivityHistory from './pages/Admin/HRActivityHistory';
 
 import PendingApprovals from './pages/ApprovalWorkflow/PendingApprovals';
 
@@ -107,6 +108,7 @@ function App() {
             <Route path="candidates" element={<CandidateList />} />
             <Route path="departments" element={<DepartmentManagement />} />
             <Route path="hr-management" element={<HRManagement />} />
+            <Route path="hr-activity-history" element={<HRActivityHistory />} />
             <Route path="approvals/pending" element={<PendingApprovals />} />
           </Route>
 

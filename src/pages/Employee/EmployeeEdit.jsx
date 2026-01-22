@@ -38,6 +38,10 @@ const EmployeeEdit = () => {
     try {
       const response = await api.get(`/employees/${id}`);
       const employee = response.data.data;
+      
+      // Handle department - check both department._id and departmentId
+      const departmentId = employee.department?._id || employee.departmentId || employee.department || '';
+      
       setFormData({
         firstName: employee.firstName || '',
         lastName: employee.lastName || '',
@@ -45,7 +49,7 @@ const EmployeeEdit = () => {
         phone: employee.phone || '',
         employeeCode: employee.employeeCode || '',
         designation: employee.designation || '',
-        department: employee.department?._id || '',
+        department: departmentId,
         dateOfJoining: employee.dateOfJoining ? new Date(employee.dateOfJoining).toISOString().split('T')[0] : '',
         dateOfBirth: employee.dateOfBirth ? new Date(employee.dateOfBirth).toISOString().split('T')[0] : '',
         address: employee.address || '',
@@ -78,10 +82,19 @@ const EmployeeEdit = () => {
     setSaving(true);
 
     try {
-      await api.put(`/employees/${id}`, formData);
+      // Ensure department is sent correctly
+      const updateData = {
+        ...formData,
+        department: formData.department || null
+      };
+      
+      console.log('Updating employee with data:', updateData);
+      const response = await api.put(`/employees/${id}`, updateData);
+      console.log('Update response:', response.data);
       toast.success('Employee updated successfully');
       navigate('/employees');
     } catch (error) {
+      console.error('Update error:', error);
       toast.error(error.response?.data?.message || 'Failed to update employee');
     } finally {
       setSaving(false);
