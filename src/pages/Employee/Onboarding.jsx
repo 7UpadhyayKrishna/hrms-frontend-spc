@@ -3,16 +3,19 @@ import {
   Plus, CheckCircle, Circle, Clock, FileText, Calendar,
   Users, AlertCircle, Eye, Edit, Send, CheckSquare,
   Filter, Search, MoreHorizontal, Mail, Phone, X, Briefcase,
-  MapPin, DollarSign, Building, FileEdit, Trash2, Copy, Save, Check, SkipForward
+  MapPin, DollarSign, Building, FileEdit, Trash2, Copy, Save, Check, SkipForward,
+  ShieldCheck, ShieldX, Loader2, RefreshCw, UserCheck
 } from 'lucide-react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
 import { config } from '../../config/api.config';
 import { useAuth } from '../../context/AuthContext';
 
-// New comprehensive onboarding status labels
+// New comprehensive onboarding status labels - includes approval statuses
 const statusLabels = {
   'preboarding': { label: 'Pre-boarding', color: 'bg-blue-500', icon: Circle },
+  'pending_approval': { label: 'Pending Approval', color: 'bg-amber-500', icon: Clock },
+  'approval_rejected': { label: 'On Hold', color: 'bg-orange-600', icon: ShieldX },
   'offer_sent': { label: 'Offer Sent', color: 'bg-yellow-500', icon: Mail },
   'offer_accepted': { label: 'Offer Accepted', color: 'bg-green-500', icon: CheckCircle },
   'docs_pending': { label: 'Documents Pending', color: 'bg-orange-500', icon: FileText },
@@ -20,6 +23,14 @@ const statusLabels = {
   'ready_for_joining': { label: 'Ready for Joining', color: 'bg-purple-500', icon: Calendar },
   'completed': { label: 'Completed', color: 'bg-green-600', icon: CheckCircle },
   'rejected': { label: 'Rejected', color: 'bg-red-500', icon: AlertCircle }
+};
+
+// Approval status labels for display
+const approvalStatusLabels = {
+  'not_requested': { label: 'Not Requested', color: 'bg-gray-500', textColor: 'text-gray-400' },
+  'pending': { label: 'Pending Admin Approval', color: 'bg-amber-500', textColor: 'text-amber-400' },
+  'approved': { label: 'Approved', color: 'bg-green-500', textColor: 'text-green-400' },
+  'rejected': { label: 'Rejected - On Hold', color: 'bg-red-500', textColor: 'text-red-400' }
 };
 
 const OnboardingProgressBar = ({ status, onSkipStage, itemId, canEdit = true }) => {
@@ -225,13 +236,43 @@ const Onboarding = () => {
     if (!confirm('Are you sure you want to complete this onboarding? This will create an employee record.')) {
       return;
     }
-    
+
+
     try {
-      await api.post(`/onboarding/${id}/complete`);
-      toast.success('Onboarding completed successfully');
-      fetchList();
+
+      const response = await api.post(`/onboarding/${id}/complete`);
+      if (response.data.success) {
+        toast.success(response.data.message || 'Onboarding completed successfully');
+        fetchList();
+      } else {
+        // Handle validation errors
+        if (response.data.errors && response.data.errors.length > 0) {
+          const errorMessages = response.data.errors.join(', ');
+          toast.error(`Validation failed: ${errorMessages}`);
+        } else {
+          toast.error(response.data.message || 'Failed to complete onboarding');
+        }
+      }
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Failed to complete onboarding');
+      console.error('Error completing onboarding:', e);
+      
+      // Handle validation errors (400 status)
+      if (e?.response?.status === 400) {
+        const errors = e?.response?.data?.errors || [];
+        const warnings = e?.response?.data?.warnings || [];
+        
+        if (errors.length > 0) {
+          toast.error(`Validation failed: ${errors.join(', ')}`);
+        } else if (warnings.length > 0) {
+          toast.error(`Warnings: ${warnings.join(', ')}`);
+        } else {
+          toast.error(e?.response?.data?.message || 'Validation failed');
+        }
+      } else {
+        // Handle server errors (500 status)
+        const errorMessage = e?.response?.data?.error || e?.response?.data?.message || 'Failed to complete onboarding process';
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -248,6 +289,25 @@ const Onboarding = () => {
       toast.success(`Document request email sent to ${res.data.data.sentTo}`);
     } catch (e) {
       toast.error(e?.response?.data?.message || 'Failed to send document request');
+    }
+  };
+
+  // Request approval from admin before sending offer
+  const requestApproval = async (id) => {
+    try {
+      const res = await api.post(`/onboarding/${id}/request-approval`, {
+        notes: 'Requesting approval to send offer letter'
+      });
+      toast.success(res.data.message || 'Approval request sent to admin');
+      fetchList();
+    } catch (e) {
+      const errorMessage = e?.response?.data?.message || 'Failed to request approval';
+      toast.error(errorMessage);
+      
+      // If approval is already pending, just refresh the list
+      if (e?.response?.data?.message?.includes('already pending')) {
+        fetchList();
+      }
     }
   };
 
@@ -400,7 +460,7 @@ const Onboarding = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-[#1E1E2A] space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -425,7 +485,7 @@ const Onboarding = () => {
                 setEditingTemplate(null);
                 setShowTemplateModal(true);
               }}
-              className="btn-primary flex items-center space-x-2"
+              className="px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20 flex items-center space-x-2"
             >
               <Plus size={18} />
               <span>Create Template</span>
@@ -442,7 +502,7 @@ const Onboarding = () => {
             className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'onboarding'
                 ? 'bg-primary-600 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-dark-700'
+                : 'text-gray-400 hover:text-white hover:bg-[#1E1E2A]'
             }`}
           >
             <div className="flex items-center justify-center space-x-2">
@@ -455,7 +515,7 @@ const Onboarding = () => {
             className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'templates'
                 ? 'bg-primary-600 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-dark-700'
+                : 'text-gray-400 hover:text-white hover:bg-[#1E1E2A]'
             }`}
           >
             <div className="flex items-center justify-center space-x-2">
@@ -522,7 +582,7 @@ const Onboarding = () => {
               setFilterDepartment('');
               setSearchTerm('');
             }}
-            className="btn-outline text-sm"
+            className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors text-sm"
           >
             Clear Filters
           </button>
@@ -550,6 +610,7 @@ const Onboarding = () => {
             }}
             onRequestDocuments={requestDocuments}
             onSkipStage={handleSkipStage}
+            onRequestApproval={requestApproval}
           />
         ))}
       </div>
@@ -640,18 +701,55 @@ const Onboarding = () => {
 };
 
 // Onboarding Card Component
-const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, onComplete, onViewDetails, onOpenSendOfferModal, onRequestDocuments, onSkipStage, canEdit = true }) => {
+const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, onComplete, onViewDetails, onOpenSendOfferModal, onRequestDocuments, onSkipStage, onRequestApproval, canEdit = true }) => {
   const [showActions, setShowActions] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [joiningDateInput, setJoiningDateInput] = useState('');
-  const statusInfo = statusLabels[item.status];
+  const [requestingApproval, setRequestingApproval] = useState(false);
+  const statusInfo = statusLabels[item.status] || statusLabels['preboarding'];
+  
+  // Get approval status info
+  const approvalStatus = item.approvalStatus?.status || 'not_requested';
+  const approvalInfo = approvalStatusLabels[approvalStatus] || approvalStatusLabels['not_requested'];
+  
+  // Check if approval is required and granted
+  const isApprovalGranted = approvalStatus === 'approved';
+  const isApprovalPending = approvalStatus === 'pending';
+  const isApprovalRejected = approvalStatus === 'rejected';
+  const canRequestApproval = (item.status === 'preboarding' && approvalStatus === 'not_requested') || 
+                             (item.status === 'approval_rejected' && approvalStatus === 'rejected');
+  
+  const handleRequestApproval = async () => {
+    if (!window.confirm('Request admin approval before sending offer letter? This will send a notification to the admin.')) {
+      return;
+    }
+    setRequestingApproval(true);
+    try {
+      await onRequestApproval(item._id);
+    } finally {
+      setRequestingApproval(false);
+    }
+  };
   
   const getNextActions = () => {
     switch (item.status) {
       case 'preboarding':
-        return [
-          { label: 'Send Offer', action: () => onOpenSendOfferModal(item), color: 'btn-primary' }
-        ];
+        // If approval is granted, allow sending offer
+        if (isApprovalGranted) {
+          return [
+            { label: 'Send Offer', action: () => onOpenSendOfferModal(item), color: 'btn-primary' }
+          ];
+        }
+        // If approval is pending, no actions
+        if (isApprovalPending) {
+          return [];
+        }
+        // Otherwise, show request approval button
+        return [];
+      case 'pending_approval':
+        return []; // Waiting for admin action
+      case 'approval_rejected':
+        return []; // HR can re-request via button below
       case 'offer_sent':
         return [
           { label: 'Mark Accepted', action: () => onUpdateStatus(item._id, 'offer_accepted'), color: 'btn-success' },
@@ -659,7 +757,7 @@ const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, o
         ];
       case 'offer_accepted':
         return [
-          { label: 'Request Documents', action: () => onUpdateStatus(item._id, 'docs_pending'), color: 'btn-primary' }
+          { label: 'Request Documents', action: () => onUpdateStatus(item._id, 'docs_pending'), color: 'px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20' }
         ];
       case 'docs_pending':
         return [
@@ -667,7 +765,7 @@ const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, o
         ];
       case 'docs_verified':
         return [
-          { label: 'Set Joining Date', action: () => handleSetJoiningDate(), color: 'btn-primary' }
+          { label: 'Set Joining Date', action: () => handleSetJoiningDate(), color: 'px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20' }
         ];
       case 'ready_for_joining':
         return [
@@ -696,7 +794,7 @@ const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, o
   const nextActions = getNextActions();
 
   return (
-    <div className="card">
+    <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center space-x-3 mb-2">
@@ -726,7 +824,7 @@ const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, o
         <div className="flex items-center space-x-2">
           <button
             onClick={() => onViewDetails(item)}
-            className="btn-outline text-sm"
+            className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors text-sm"
           >
             <Eye size={16} />
           </button>
@@ -734,7 +832,7 @@ const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, o
             <div className="relative">
               <button
                 onClick={() => setShowActions(!showActions)}
-                className="btn-outline text-sm"
+                className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors text-sm"
               >
                 <MoreHorizontal size={16} />
               </button>
@@ -771,6 +869,66 @@ const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, o
         canEdit={canEdit}
       />
 
+      {/* Approval Status Indicator - Show when in preboarding or approval-related states */}
+      {(item.status === 'preboarding' || item.status === 'pending_approval' || item.status === 'approval_rejected') && (
+        <div className={`mb-4 p-3 rounded-lg border ${
+          isApprovalGranted ? 'bg-green-900/20 border-green-800' :
+          isApprovalPending ? 'bg-amber-900/20 border-amber-800' :
+          isApprovalRejected ? 'bg-red-900/20 border-red-800' :
+          'bg-blue-900/20 border-blue-800'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              {isApprovalGranted ? (
+                <ShieldCheck size={16} className="text-green-400" />
+              ) : isApprovalPending ? (
+                <Clock size={16} className="text-amber-400 animate-pulse" />
+              ) : isApprovalRejected ? (
+                <ShieldX size={16} className="text-red-400" />
+              ) : (
+                <AlertCircle size={16} className="text-blue-400" />
+              )}
+              <span className={`text-sm font-medium ${approvalInfo.textColor}`}>
+                {isApprovalGranted ? 'Admin Approved - Ready to send offer' :
+                 isApprovalPending ? 'Waiting for Admin Approval...' :
+                 isApprovalRejected ? `Approval Rejected: ${item.approvalStatus?.rejectionReason || 'No reason provided'}` :
+                 'Admin approval required before sending offer'}
+              </span>
+            </div>
+            
+            {/* Request Approval / Re-Request Button */}
+            {canEdit && canRequestApproval && (
+              <button
+                onClick={handleRequestApproval}
+                disabled={requestingApproval}
+                className="btn-primary btn-sm flex items-center space-x-1"
+              >
+                {requestingApproval ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Requesting...</span>
+                  </>
+                ) : (
+                  <>
+                    {isApprovalRejected ? <RefreshCw size={14} /> : <UserCheck size={14} />}
+                    <span>{isApprovalRejected ? 'Re-Request Approval' : 'Request Approval'}</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+          
+          {/* Show approval details if available */}
+          {item.approvalStatus?.requestedAt && (
+            <div className="mt-2 text-xs text-gray-400">
+              Requested: {new Date(item.approvalStatus.requestedAt).toLocaleString()}
+              {item.approvalStatus.approvedAt && ` • Approved: ${new Date(item.approvalStatus.approvedAt).toLocaleString()}`}
+              {item.approvalStatus.rejectedAt && ` • Rejected: ${new Date(item.approvalStatus.rejectedAt).toLocaleString()}`}
+            </div>
+          )}
+        </div>
+      )}
+
       {item.joiningDate && (
         <div className="mb-4 p-3 bg-green-900/20 border border-green-800 rounded-lg">
           <div className="flex items-center space-x-2">
@@ -802,12 +960,23 @@ const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, o
           {/* Request Documents button - always visible */}
           <button
             onClick={() => onRequestDocuments(item._id)}
-            className="btn-outline text-sm flex items-center space-x-1"
+            className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors text-sm flex items-center space-x-1"
             title="Send document upload link to candidate"
           >
             <FileText size={14} />
             <span>Request Documents</span>
           </button>
+          
+          {/* Show Send Offer button only if approval is granted */}
+          {item.status === 'preboarding' && isApprovalGranted && canEdit && (
+            <button
+              onClick={() => onOpenSendOfferModal(item)}
+              className="btn-primary text-sm flex items-center space-x-1"
+            >
+              <Mail size={14} />
+              <span>Send Offer</span>
+            </button>
+          )}
           
           {nextActions.slice(0, 2).map((action, idx) => (
             <button
@@ -847,13 +1016,13 @@ const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, o
                   value={joiningDateInput}
                   onChange={(e) => setJoiningDateInput(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-2 bg-dark-800 border border-dark-700 rounded-lg text-white focus:border-primary-600 focus:outline-none"
+                  className="w-full px-4 py-2 bg-[#2A2A3A] border border-dark-700 rounded-lg text-white focus:border-primary-600 focus:outline-none"
                 />
               </div>
               <div className="flex items-center space-x-3">
                 <button
                   onClick={handleDateSubmit}
-                  className="flex-1 btn-primary"
+                  className="flex-1 px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20"
                   disabled={!joiningDateInput}
                 >
                   <Calendar size={16} className="mr-2" />
@@ -864,7 +1033,7 @@ const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, o
                     setShowDatePicker(false);
                     setJoiningDateInput('');
                   }}
-                  className="flex-1 btn-outline"
+                  className="flex-1 px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors"
                 >
                   Cancel
                 </button>
@@ -919,7 +1088,7 @@ const OnboardingDetailsModal = ({ onboarding, onClose, verifyingDoc, onAcceptDoc
           </div>
           <button
             onClick={onClose}
-            className="btn-outline p-2"
+            className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors p-2"
           >
             <X size={20} />
           </button>
@@ -928,7 +1097,7 @@ const OnboardingDetailsModal = ({ onboarding, onClose, verifyingDoc, onAcceptDoc
         {/* Content */}
         <div className="p-6 space-y-6">
           {/* Status */}
-          <div className="card">
+          <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
             <h3 className="text-lg font-semibold text-white mb-4">Current Status</h3>
             <div className="flex items-center space-x-3">
               <div className={`p-3 rounded-lg ${statusInfo.color}`}>
@@ -945,7 +1114,7 @@ const OnboardingDetailsModal = ({ onboarding, onClose, verifyingDoc, onAcceptDoc
           </div>
 
           {/* Basic Information */}
-          <div className="card">
+          <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
             <h3 className="text-lg font-semibold text-white mb-4">Basic Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-start space-x-3">
@@ -981,7 +1150,7 @@ const OnboardingDetailsModal = ({ onboarding, onClose, verifyingDoc, onAcceptDoc
 
           {/* Offer Details */}
           {onboarding.offer && (
-            <div className="card">
+            <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
               <h3 className="text-lg font-semibold text-white mb-4">Offer Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-start space-x-3">
@@ -1025,7 +1194,7 @@ const OnboardingDetailsModal = ({ onboarding, onClose, verifyingDoc, onAcceptDoc
               
               {/* Salary Breakdown */}
               {onboarding.offer.salary && (
-                <div className="mt-4 p-4 bg-dark-800 rounded-lg">
+                <div className="mt-4 p-4 bg-[#2A2A3A] rounded-lg">
                   <p className="text-sm font-medium text-gray-400 mb-3">Salary Breakdown</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div>
@@ -1052,7 +1221,7 @@ const OnboardingDetailsModal = ({ onboarding, onClose, verifyingDoc, onAcceptDoc
 
           {/* Joining Date */}
           {onboarding.joiningDate && (
-            <div className="card">
+            <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
               <h3 className="text-lg font-semibold text-white mb-4">Joining Information</h3>
               <div className="flex items-start space-x-3">
                 <Calendar size={18} className="text-primary-500 mt-1" />
@@ -1066,11 +1235,11 @@ const OnboardingDetailsModal = ({ onboarding, onClose, verifyingDoc, onAcceptDoc
 
           {/* Audit Trail */}
           {onboarding.auditTrail && onboarding.auditTrail.length > 0 && (
-            <div className="card">
+            <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
               <h3 className="text-lg font-semibold text-white mb-4">Activity Timeline</h3>
               <div className="space-y-3">
                 {onboarding.auditTrail.slice().reverse().map((audit, idx) => (
-                  <div key={idx} className="flex items-start space-x-3 p-3 bg-dark-800 rounded-lg">
+                  <div key={idx} className="flex items-start space-x-3 p-3 bg-[#2A2A3A] rounded-lg">
                     <div className="w-2 h-2 bg-primary-500 rounded-full mt-2"></div>
                     <div className="flex-1">
                       <p className="text-white font-medium">{audit.action.replace(/_/g, ' ').toUpperCase()}</p>
@@ -1085,11 +1254,11 @@ const OnboardingDetailsModal = ({ onboarding, onClose, verifyingDoc, onAcceptDoc
 
           {/* Documents */}
           {onboarding.documents && onboarding.documents.length > 0 && (
-            <div className="card">
+            <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
               <h3 className="text-lg font-semibold text-white mb-4">Documents</h3>
               <div className="space-y-3">
                 {onboarding.documents.map((doc, idx) => (
-                  <div key={idx} className="p-4 bg-dark-800 rounded-lg">
+                  <div key={idx} className="p-4 bg-[#2A2A3A] rounded-lg">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center space-x-3">
                         <FileText size={18} className="text-primary-500" />
@@ -1161,7 +1330,7 @@ const OnboardingDetailsModal = ({ onboarding, onClose, verifyingDoc, onAcceptDoc
         <div className="sticky bottom-0 bg-dark-900 border-t border-dark-700 p-6 flex justify-end">
           <button
             onClick={onClose}
-            className="btn-primary"
+            className="px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20"
           >
             Close
           </button>
@@ -1266,28 +1435,28 @@ const TemplatesSection = ({ templates, loading, filter, setFilter, onEdit, onDel
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => onEdit(template)}
-                className="flex-1 btn-outline text-sm py-2"
+                className="flex-1 px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors text-sm py-2"
               >
                 <Edit size={14} className="inline mr-1" />
                 Edit
               </button>
               <button
                 onClick={() => onDuplicate(template)}
-                className="btn-outline p-2"
+                className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors p-2"
                 title="Duplicate"
               >
                 <Copy size={16} />
               </button>
               <button
                 onClick={() => onUpdateStatus(template._id, template.status === 'active' ? 'inactive' : 'active')}
-                className={`btn-outline p-2 ${template.status === 'active' ? 'text-yellow-400' : 'text-green-400'}`}
+                className={`px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors p-2 ${template.status === 'active' ? 'text-yellow-400' : 'text-green-400'}`}
                 title={template.status === 'active' ? 'Deactivate' : 'Activate'}
               >
                 {template.status === 'active' ? <Clock size={16} /> : <CheckCircle size={16} />}
               </button>
               <button
                 onClick={() => onDelete(template._id)}
-                className="btn-outline p-2 text-red-400 hover:bg-red-500/10"
+                className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors p-2 text-red-400 hover:bg-red-500/10"
                 title="Delete"
               >
                 <Trash2 size={16} />
@@ -1371,7 +1540,7 @@ const TemplateModal = ({ template, onClose, onSave }) => {
             </h2>
             <p className="text-gray-400 mt-1">Design your offer letter template</p>
           </div>
-          <button onClick={onClose} className="btn-outline p-2">
+          <button onClick={onClose} className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors p-2">
             <X size={20} />
           </button>
         </div>
@@ -1525,13 +1694,13 @@ const TemplateModal = ({ template, onClose, onSave }) => {
             <button
               type="button"
               onClick={onClose}
-              className="btn-outline"
+              className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="btn-primary flex items-center space-x-2"
+              className="px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20 flex items-center space-x-2"
             >
               <Save size={18} />
               <span>{template ? 'Update Template' : 'Create Template'}</span>
@@ -1732,7 +1901,7 @@ Best regards,
             <h2 className="text-xl font-bold text-white">Send Offer Letter Email</h2>
             <p className="text-gray-400 text-sm mt-1">Select a template and fill in the offer details</p>
           </div>
-          <button onClick={onClose} className="btn-outline p-2">
+          <button onClick={onClose} className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors p-2">
             <X size={20} />
           </button>
         </div>
@@ -1740,7 +1909,7 @@ Best regards,
         {/* Content */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Candidate Info */}
-          <div className="bg-dark-800 p-4 rounded-lg space-y-2">
+          <div className="bg-[#2A2A3A] p-4 rounded-lg space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-400">Position:</span>
               <span className="text-white font-medium">{candidate.position}</span>
@@ -1792,7 +1961,7 @@ Best regards,
                   <p className="text-red-400 text-sm mt-1">{errors.templateId}</p>
                 )}
                 {selectedTemplatePreview && (
-                  <div className="mt-2 p-3 bg-dark-800 rounded-lg">
+                  <div className="mt-2 p-3 bg-[#2A2A3A] rounded-lg">
                     <p className="text-xs text-gray-400 mb-1">Template Preview:</p>
                     <p className="text-sm text-white font-medium mb-1">{selectedTemplatePreview.subject}</p>
                     <p className="text-xs text-gray-500">{selectedTemplatePreview.description}</p>
@@ -1890,14 +2059,14 @@ Best regards,
             <button
               type="button"
               onClick={onClose}
-              className="btn-outline"
+              className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors"
               disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="btn-primary flex items-center space-x-2"
+              className="px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20 flex items-center space-x-2"
               disabled={loading || loadingTemplates || templates.length === 0}
             >
               {loading ? (
@@ -1925,7 +2094,7 @@ const RejectionModal = ({ isOpen, onClose, document, rejectionNotes, setRejectio
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-dark-800 rounded-lg shadow-xl max-w-md w-full">
+      <div className="bg-[#2A2A3A] rounded-lg shadow-xl max-w-md w-full">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-semibold text-white">Reject Document</h3>
@@ -1947,7 +2116,7 @@ const RejectionModal = ({ isOpen, onClose, document, rejectionNotes, setRejectio
               value={rejectionNotes}
               onChange={(e) => setRejectionNotes(e.target.value)}
               placeholder="e.g., Document is not clear, please upload a better quality scan..."
-              className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 bg-[#1E1E2A] border border-dark-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
               rows={4}
             />
           </div>
@@ -1956,7 +2125,7 @@ const RejectionModal = ({ isOpen, onClose, document, rejectionNotes, setRejectio
             <button
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-[#1E1E2A] hover:bg-dark-600 text-white rounded-lg transition-colors"
             >
               Cancel
             </button>

@@ -14,6 +14,9 @@ import {
   Upload,
   ChevronDown,
   ChevronRight,
+  ShieldCheck,
+  Building,
+  History,
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
@@ -76,12 +79,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       ]
     },
     {
-      key: 'offboarding',
-      label: 'Offboarding',
-      icon: UserMinus,
-      path: '/employees/offboarding'
-    },
-    {
       key: 'candidate-pool',
       label: 'Candidate Pool',
       icon: Users,
@@ -113,6 +110,18 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       label: 'Candidates',
       icon: Users,
       path: '/candidates'
+    },
+    {
+      key: 'pending-approvals',
+      label: 'Pending Approvals',
+      icon: ShieldCheck,
+      path: '/approvals/pending'
+    },
+    {
+      key: 'departments',
+      label: 'Departments',
+      icon: Building,
+      path: '/departments'
     }
   ];
 
@@ -126,6 +135,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         label: 'HR Management',
         icon: Users,
         path: '/hr-management'
+      },
+      {
+        key: 'hr-activity-history',
+        label: 'HR Activity History',
+        icon: History,
+        path: '/hr-activity-history'
       },
       {
         key: 'employees',
@@ -144,7 +159,22 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   } else if (isHR) {
     menuItems = hrMenuItems;
   } else if (isAdmin) {
-    menuItems = adminMenuItems;
+    menuItems = [
+      ...adminMenuItems,
+      {
+        key: 'employees',
+        label: 'Employee Management',
+        icon: User,
+        path: '/employees',
+        children: [
+          { label: 'All Employees', path: '/employees' },
+          { label: 'Add Employee', path: '/employees/add' },
+          { label: 'Bulk Upload', path: '/employees/bulk-upload' },
+          { label: 'Onboarding', path: '/employees/onboarding' },
+          { label: 'Offboarding', path: '/employees/offboarding' }
+        ]
+      }
+    ];
   } else {
     menuItems = [];
   }

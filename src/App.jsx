@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { Toaster } from 'react-hot-toast';
 import HomeRedirect from './components/HomeRedirect';
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -24,6 +25,12 @@ import Unauthorized from './pages/Unauthorized';
 import Dashboard from './pages/Dashboard';
 import CandidateList from './pages/Candidates/CandidateList';
 import HRManagement from './pages/Admin/HRManagement';
+import HRActivityHistory from './pages/Admin/HRActivityHistory';
+
+import PendingApprovals from './pages/ApprovalWorkflow/PendingApprovals';
+
+import DepartmentManagement from './pages/Admin/DepartmentManagement';
+
 
 // HR Pages
 import JobDesk from './pages/JobDesk';
@@ -35,6 +42,7 @@ import EmployeeList from './pages/Employee/EmployeeList';
 import EmployeeAdd from './pages/Employee/EmployeeAdd';
 import EmployeeEdit from './pages/Employee/EmployeeEdit';
 import EmployeeDetail from './pages/Employee/EmployeeDetail';
+import EmployeeProfile from './pages/Employee/EmployeeProfile';
 import BulkEmployeeUpload from './pages/Employee/BulkEmployeeUpload';
 import ResumeSearch from './pages/HRDashboard/ResumeSearch';
 import ResumeParser from './pages/HRDashboard/ResumeParser';
@@ -44,7 +52,8 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router>
+        <NotificationProvider>
+          <Router>
           <Toaster
             position="top-right"
             toastOptions={{
@@ -97,7 +106,10 @@ function App() {
           >
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="candidates" element={<CandidateList />} />
+            <Route path="departments" element={<DepartmentManagement />} />
             <Route path="hr-management" element={<HRManagement />} />
+            <Route path="hr-activity-history" element={<HRActivityHistory />} />
+            <Route path="approvals/pending" element={<PendingApprovals />} />
           </Route>
 
           {/* HR Routes */}
@@ -109,6 +121,7 @@ function App() {
               </ProtectedRoute>
             }
           >
+            <Route path="profile" element={<EmployeeProfile />} />
             <Route path="hr/candidate-pool" element={<HRCandidatePool />} />
             <Route path="hr/resume-search" element={<ResumeSearch />} />
             <Route path="hr/resume-parser" element={<ResumeParser />} />
@@ -140,7 +153,7 @@ function App() {
           <Route
             path="/employees/*"
             element={
-              <ProtectedRoute roles={['hr', 'company_admin']}>
+              <ProtectedRoute roles={['hr', 'admin', 'company_admin']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -154,7 +167,8 @@ function App() {
             <Route path="offboarding" element={<Offboarding />} />
           </Route>
           </Routes>
-        </Router>
+          </Router>
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   );

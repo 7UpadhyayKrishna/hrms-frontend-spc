@@ -26,6 +26,23 @@ const HRCandidatePool = () => {
     maxExperience: ''
   });
 
+  // JD-based search state
+  const [jdSearch, setJdSearch] = useState({
+    jdId: '',
+    jdData: null,
+    minScore: 30,
+    isSearching: false,
+    searchResults: [],
+    showResults: false,
+    availableJDs: [],
+    showCreateJD: false,
+    createJDFile: null,
+    createJDData: {
+      jobTitle: '',
+      companyName: ''
+    }
+  });
+
   const [newResume, setNewResume] = useState({
     name: '',
     email: '',
@@ -45,56 +62,64 @@ const HRCandidatePool = () => {
 
   const pageSize = 20;
 
-  const normalizeResumeEntry = (resume = {}) => ({
-    id: resume._id,
-    type: 'resume',
-    name: resume.name || 'Unnamed Candidate',
-    email: resume.email || '',
-    phone: resume.phone || '',
-    currentLocation: resume.parsedData?.location || '',
-    experience: {
-      years: resume.parsedData?.experience?.years ?? resume.experienceYears ?? null,
-      months: resume.parsedData?.experience?.months ?? resume.experienceMonths ?? null
-    },
-    skills: resume.parsedData?.skills || [],
-    statusLabel: resume.processingStatus || 'pending',
-    statusType: 'processing',
-    tags: resume.tags || [],
-    source: resume.fileName || 'Resume Upload',
-    rawText: resume.rawText || '',
-    createdAt: resume.createdAt || resume.updatedAt,
-    appliedRole: null,
-    stage: null,
-    // Intelligent search metadata
-    relevanceScore: resume.relevanceScore || null,
-    matchedSkills: resume.matchedSkills || [],
-    matchReason: resume.matchReason || null,
-    original: resume
-  });
+  const normalizeResumeEntry = (resume = {}) => {
+    const normalized = {
+      id: resume._id,
+      type: 'resume',
+      name: resume.name || 'Unnamed Candidate',
+      email: resume.email || '',
+      phone: resume.phone || '',
+      currentLocation: resume.parsedData?.location || '',
+      experience: {
+        years: resume.parsedData?.experience?.years ?? resume.experienceYears ?? null,
+        months: resume.parsedData?.experience?.months ?? resume.experienceMonths ?? null
+      },
+      skills: resume.parsedData?.skills || [],
+      statusLabel: resume.processingStatus || 'pending',
+      statusType: 'processing',
+      tags: resume.tags || [],
+      source: resume.fileName || 'Resume Upload',
+      rawText: resume.rawText || '',
+      createdAt: resume.createdAt || resume.updatedAt,
+      appliedRole: null,
+      stage: null,
+      // Intelligent search metadata
+      relevanceScore: resume.relevanceScore || null,
+      matchedSkills: resume.matchedSkills || [],
+      matchReason: resume.matchReason || null,
+      original: resume
+    };
 
-  const normalizeCandidateEntry = (candidate = {}) => ({
-    id: candidate._id,
-    type: 'candidate',
-    name: `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() || 'Unnamed Candidate',
-    email: candidate.email || '',
-    phone: candidate.phone || '',
-    currentLocation: candidate.currentLocation || '',
-    experience: {
-      years: candidate.experience?.years ?? null,
-      months: candidate.experience?.months ?? null
-    },
-    skills: Array.isArray(candidate.skills) ? candidate.skills : [],
-    statusLabel: candidate.stage || candidate.status || 'applied',
-    statusType: 'stage',
-    tags: [candidate.source, candidate.appliedFor?.title].filter(Boolean),
-    source: candidate.appliedFor?.title ? `Applied for ${candidate.appliedFor.title}` : 'Job Applicant',
-    rawText: '',
-    createdAt: candidate.createdAt,
-    appliedRole: candidate.appliedFor?.title || '',
-    stage: candidate.stage || '',
-    resumeUrl: candidate.resume?.url,
-    original: candidate
-  });
+    return normalized;
+  };
+
+  const normalizeCandidateEntry = (candidate = {}) => {
+    const normalized = {
+      id: candidate._id,
+      type: 'candidate',
+      name: `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() || 'Unnamed Candidate',
+      email: candidate.email || '',
+      phone: candidate.phone || '',
+      currentLocation: candidate.currentLocation || '',
+      experience: {
+        years: candidate.experience?.years ?? null,
+        months: candidate.experience?.months ?? null
+      },
+      skills: Array.isArray(candidate.skills) ? candidate.skills : [],
+      statusLabel: candidate.stage || candidate.status || 'applied',
+      statusType: 'stage',
+      tags: [candidate.source, candidate.appliedFor?.title].filter(Boolean),
+      source: candidate.isExEmployee ? 'Ex-Employee' : (candidate.appliedFor?.title ? `Applied for ${candidate.appliedFor.title}` : 'Job Applicant'),
+      rawText: '',
+      createdAt: candidate.createdAt,
+      appliedRole: candidate.appliedFor?.title || '',
+      stage: candidate.stage || '',
+      resumeUrl: candidate.resume?.url,
+      original: candidate
+    };
+
+    return normalized;
+  };
 
   const applyPagination = (dataset, targetPage = 1) => {
     const total = dataset.length;
@@ -147,17 +172,35 @@ const HRCandidatePool = () => {
       const resumeEntries = resumeData.map(normalizeResumeEntry);
       const candidateEntries = candidateData.map(normalizeCandidateEntry);
 
-      // If searching, sort by relevance score (if available), otherwise by date
-      const combined = [...candidateEntries, ...resumeEntries].sort((a, b) => {
-        // If both have relevance scores, sort by score (higher first)
-        if (a.relevanceScore !== null && a.relevanceScore !== undefined &&
-            b.relevanceScore !== null && b.relevanceScore !== undefined) {
-          return b.relevanceScore - a.relevanceScore;
+      // Include JD-matched candidates if JD search was performed
+      let jdMatchedEntries = [];
+      if (jdSearch.showResults && jdSearch.searchResults.length > 0) {
+        // Convert JD search results to the same format as regular entries
+        jdMatchedEntries = jdSearch.searchResults.map(match => ({
+          ...normalizeCandidateEntry(match.candidate),
+          matchScore: match.overallScore,
+          overallFit: match.overallFit,
+          matchedSkills: match.matchedSkills,
+          relevanceExplanation: match.relevanceExplanation,
+          isJDMatched: true // Flag to identify JD-matched candidates
+        }));
+      }
+
+      // Combine all entries and sort appropriately
+      const combined = [...candidateEntries, ...resumeEntries, ...jdMatchedEntries].sort((a, b) => {
+        // Priority 1: JD-matched candidates (highest priority when JD search is active)
+        if (jdSearch.showResults) {
+          if (a.isJDMatched && !b.isJDMatched) return -1;
+          if (!a.isJDMatched && b.isJDMatched) return 1;
+          // If both are JD-matched or both are not, continue to score sorting
         }
-        // If only one has a score, prioritize it
-        if (a.relevanceScore !== null && a.relevanceScore !== undefined) return -1;
-        if (b.relevanceScore !== null && b.relevanceScore !== undefined) return 1;
-        // Otherwise sort by date
+
+        // Priority 2: Relevance/match scores (higher scores first)
+        const aScore = a.relevanceScore || a.matchScore || 0;
+        const bScore = b.relevanceScore || b.matchScore || 0;
+        if (aScore !== bScore) return bScore - aScore;
+
+        // Priority 3: Date sorting (newer first)
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
@@ -174,6 +217,7 @@ const HRCandidatePool = () => {
 
   useEffect(() => {
     fetchCandidatePool({ page: 1 });
+    loadAvailableJDs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -186,9 +230,196 @@ const HRCandidatePool = () => {
     setTimeout(() => fetchCandidatePool({ page: 1 }), 0);
   };
 
+  // Load available job descriptions
+  const loadAvailableJDs = async () => {
+    try {
+      const response = await api.get('/job-descriptions', {
+        params: { limit: 100 }
+      });
+      if (response.data.success) {
+        setJdSearch(prev => ({
+          ...prev,
+          availableJDs: response.data.data.map(jd => ({
+            id: jd._id,
+            jobTitle: jd.jobTitle,
+            companyName: jd.companyName || 'Unknown Company',
+            parsingStatus: jd.parsingStatus
+          }))
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to load JDs:', error);
+    }
+  };
+
+  // Poll JD parsing status
+  const pollJDParsingStatus = async (jdId, maxAttempts = 30) => {
+    let attempts = 0;
+    
+    const checkStatus = async () => {
+      try {
+        const response = await api.get(`/job-descriptions/${jdId}/parsing-status`);
+        
+        if (response.data.success && response.data.data.isReady) {
+          // Parsing completed
+          toast.success(`✅ JD "${response.data.data.jobTitle}" is ready for candidate matching!`);
+          loadAvailableJDs(); // Refresh the JD list
+          return true;
+        } else if (response.data.data.parsingStatus === 'failed') {
+          // Parsing failed
+          toast.error(`❌ JD parsing failed: ${response.data.data.error || 'Unknown error'}`);
+          loadAvailableJDs();
+          return true;
+        } else if (attempts < maxAttempts) {
+          // Still processing, poll again
+          attempts++;
+          setTimeout(checkStatus, 2000); // Check every 2 seconds
+          return false;
+        } else {
+          // Max attempts reached
+          toast.warning('JD parsing is taking longer than expected. You can check back later.');
+          loadAvailableJDs();
+          return true;
+        }
+      } catch (error) {
+        console.error('Error checking parsing status:', error);
+        return true; // Stop polling on error
+      }
+    };
+    
+    checkStatus();
+  };
+
   const handlePageChange = (newPage) => {
     if (newPage < 1 || newPage > totalPages) return;
-    applyPagination(allEntries, newPage);
+    if (jdSearch.showResults) {
+      // Handle pagination for JD search results
+      applyPagination(jdSearch.searchResults, newPage);
+    } else {
+      applyPagination(allEntries, newPage);
+    }
+  };
+
+  // JD-based search functions
+  const handleJDSearch = async () => {
+    if (!jdSearch.jdId && !jdSearch.jdData) {
+      toast.error('Please select a Job Description or enter JD data');
+      return;
+    }
+
+    setJdSearch(prev => ({ ...prev, isSearching: true }));
+    setLoading(true);
+    setError('');
+
+    try {
+      const searchParams = {
+        minScore: jdSearch.minScore,
+        maxResults: 50
+      };
+
+      if (jdSearch.jdId) {
+        searchParams.jdId = jdSearch.jdId;
+      } else if (jdSearch.jdData) {
+        searchParams.jdData = JSON.stringify(jdSearch.jdData);
+      }
+
+      const response = await api.get('/candidates/search-by-jd', { params: searchParams });
+
+      if (response.data.success) {
+        const searchResults = response.data.data.matches.map(match => ({
+          ...match.candidate,
+          type: 'candidate',
+          relevanceExplanation: match.relevanceExplanation,
+          matchedSkills: match.matchedSkills,
+          matchScore: match.overallScore,
+          overallFit: match.overallFit,
+          experienceMatch: match.experienceMatch,
+          locationMatch: match.locationMatch
+        }));
+
+        setJdSearch(prev => ({
+          ...prev,
+          searchResults,
+          showResults: true,
+          isSearching: false
+        }));
+
+        applyPagination(searchResults, 1);
+        toast.success(`Found ${searchResults.length} matching candidates`);
+      }
+    } catch (error) {
+      console.error('JD search error:', error);
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to search candidates by JD';
+      
+      if (errorMessage.includes('parsing not completed')) {
+        toast.error('JD is still being parsed. Please wait a moment and try again.');
+      } else {
+        toast.error(errorMessage);
+      }
+      
+      setError(errorMessage);
+      setJdSearch(prev => ({ ...prev, isSearching: false }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearJDSearch = () => {
+    setJdSearch(prev => ({
+      ...prev,
+      jdId: '',
+      jdData: null,
+      minScore: 30,
+      isSearching: false,
+      searchResults: [],
+      showResults: false
+    }));
+    fetchCandidatePool({ page: 1 });
+  };
+
+  // JD Creation Functions
+  const handleCreateJD = async () => {
+    if (!jdSearch.createJDFile || !jdSearch.createJDData.jobTitle.trim()) {
+      toast.error('Please select a file and enter job title');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('jdFile', jdSearch.createJDFile);
+    formData.append('jobTitle', jdSearch.createJDData.jobTitle);
+    if (jdSearch.createJDData.companyName) {
+      formData.append('companyName', jdSearch.createJDData.companyName);
+    }
+
+    try {
+      const response = await api.post('/job-descriptions/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success) {
+        const newJdId = response.data.data.jobDescriptionId;
+        toast.success('Job Description uploaded! Parsing in progress...');
+        
+        setJdSearch(prev => ({
+          ...prev,
+          showCreateJD: false,
+          createJDFile: null,
+          createJDData: { jobTitle: '', companyName: '' },
+          jdId: newJdId // Auto-select the new JD
+        }));
+        
+        // Reload available JDs
+        loadAvailableJDs();
+        
+        // Start polling for parsing completion
+        pollJDParsingStatus(newJdId);
+      }
+    } catch (error) {
+      console.error('JD creation error:', error);
+      toast.error(error.response?.data?.error || 'Failed to create JD');
+    }
   };
 
   const openAddModal = () => {
@@ -316,7 +547,7 @@ const HRCandidatePool = () => {
     if (!entry) return [];
     if (entry.type === 'candidate') {
       const tags = entry.tags || [];
-      return tags.length ? tags : ['Job Applicant'];
+      return tags.length ? tags : [entry.original?.isExEmployee ? 'Ex-Employee' : 'Job Applicant'];
     }
     return entry.tags || [];
   };
@@ -520,6 +751,78 @@ const HRCandidatePool = () => {
             </button>
           </div>
 
+          {/* JD Search */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <FileText className="w-3 h-3" />
+              JD Match
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={jdSearch.jdId}
+                onChange={(e) => setJdSearch(prev => ({ ...prev, jdId: e.target.value }))}
+                className="w-48 px-2 py-1.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-xs text-gray-200 focus:outline-none focus:border-[#A88BFF]"
+              >
+                <option value="">Select Job Description</option>
+                {jdSearch.availableJDs?.map(jd => (
+                  <option key={jd.id} value={jd.id}>
+                    {jd.parsingStatus === 'completed' ? '✓ ' : jd.parsingStatus === 'processing' ? '⏳ ' : jd.parsingStatus === 'failed' ? '✗ ' : ''}
+                    {jd.jobTitle} - {jd.companyName}
+                    {jd.parsingStatus === 'processing' ? ' (Parsing...)' : jd.parsingStatus === 'failed' ? ' (Failed)' : ''}
+                  </option>
+                ))}
+              </select>
+              {jdSearch.jdId && jdSearch.availableJDs?.find(jd => jd.id === jdSearch.jdId)?.parsingStatus === 'processing' && (
+                <span className="flex items-center gap-1 text-xs text-yellow-400">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Parsing...
+                </span>
+              )}
+              {jdSearch.jdId && jdSearch.availableJDs?.find(jd => jd.id === jdSearch.jdId)?.parsingStatus === 'completed' && (
+                <span className="flex items-center gap-1 text-xs text-green-400">
+                  <CheckCircle className="w-3 h-3" />
+                  Ready
+                </span>
+              )}
+            </div>
+            <input
+              type="number"
+              placeholder="Min Score %"
+              value={jdSearch.minScore}
+              onChange={(e) => setJdSearch(prev => ({ ...prev, minScore: parseInt(e.target.value) || 30 }))}
+              className="w-20 px-2 py-1.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
+            />
+            <button
+              onClick={() => setJdSearch(prev => ({ ...prev, showCreateJD: true }))}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-3 h-3" />
+              Create JD
+            </button>
+            <button
+              onClick={handleJDSearch}
+              disabled={jdSearch.isSearching || !jdSearch.jdId || jdSearch.availableJDs?.find(jd => jd.id === jdSearch.jdId)?.parsingStatus === 'processing'}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title={jdSearch.availableJDs?.find(jd => jd.id === jdSearch.jdId)?.parsingStatus === 'processing' ? 'JD is still being parsed. Please wait...' : ''}
+            >
+              {jdSearch.isSearching ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <FileText className="w-3 h-3" />
+              )}
+              JD Search
+            </button>
+            {jdSearch.showResults && (
+              <button
+                onClick={clearJDSearch}
+                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-gray-600 text-white text-xs font-medium hover:bg-gray-700 transition-colors"
+              >
+                <X className="w-3 h-3" />
+                Clear
+              </button>
+            )}
+          </div>
+
           {/* Filters */}
           <div className="flex flex-wrap gap-3 items-center">
             <div className="flex items-center gap-2 text-xs text-gray-400">
@@ -556,12 +859,17 @@ const HRCandidatePool = () => {
         <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-gray-300">
             <Users className="w-4 h-4 text-[#A88BFF]" />
-            <span>Candidate Pool</span>
+            <span>{jdSearch.showResults ? 'JD Match Results' : 'Candidate Pool'}</span>
             <span className="text-xs text-gray-500">({entries.length} shown of {totalCount})</span>
+            {jdSearch.showResults && (
+              <span className="px-2 py-0.5 text-xs rounded-full bg-green-500/10 text-green-300 border border-green-500/30">
+                JD Matched
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <Clock className="w-3 h-3" />
-            Recruiting + AI parsed resumes, combined automatically
+            {jdSearch.showResults ? 'AI-powered job matching' : 'Recruiting + AI parsed resumes, combined automatically'}
           </div>
         </div>
 
@@ -574,6 +882,12 @@ const HRCandidatePool = () => {
                 <th className="px-4 py-3 text-left">Phone</th>
                 <th className="px-4 py-3 text-left">Location</th>
                 <th className="px-4 py-3 text-left">Skills</th>
+                {jdSearch.showResults && (
+                  <>
+                    <th className="px-4 py-3 text-left">Match Score</th>
+                    <th className="px-4 py-3 text-left">Matched Skills</th>
+                  </>
+                )}
                 <th className="px-4 py-3 text-left">Resume/CV</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
@@ -581,7 +895,7 @@ const HRCandidatePool = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={jdSearch.showResults ? 9 : 7} className="px-4 py-10 text-center text-gray-400">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin text-[#A88BFF]" />
                       <span>Loading candidate pool...</span>
@@ -590,7 +904,7 @@ const HRCandidatePool = () => {
                 </tr>
               ) : entries.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-gray-500 text-sm">
+                  <td colSpan={jdSearch.showResults ? 9 : 7} className="px-4 py-10 text-center text-gray-500 text-sm">
                     No candidates found yet. Adjust filters or add resumes manually.
                   </td>
                 </tr>
@@ -604,9 +918,18 @@ const HRCandidatePool = () => {
                       <div className="flex flex-col">
                         <span className="text-white font-medium flex items-center gap-2">
                           {entry.name}
-                          {entry.type === 'candidate' && (
-                            <span className="px-2 py-0.5 text-[10px] rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/30">
-                              Applicant
+                          {entry.isJDMatched && (
+                            <span className="px-2 py-0.5 text-[10px] rounded-full bg-green-500/10 text-green-300 border border-green-500/30">
+                              JD Match
+                            </span>
+                          )}
+                          {entry.type === 'candidate' && !entry.isJDMatched && (
+                            <span className={`px-2 py-0.5 text-[10px] rounded-full border ${
+                              entry.original?.isExEmployee 
+                                ? 'bg-orange-500/10 text-orange-300 border-orange-500/30' 
+                                : 'bg-blue-500/10 text-blue-300 border-blue-500/30'
+                            }`}>
+                              {entry.original?.isExEmployee ? 'Ex-Employee' : 'Applicant'}
                             </span>
                           )}
                           {entry.type === 'resume' && (
@@ -652,6 +975,49 @@ const HRCandidatePool = () => {
                         )}
                       </div>
                     </td>
+                    {jdSearch.showResults && (
+                      <>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm font-medium ${
+                              entry.matchScore >= 90 ? 'text-green-400' :
+                              entry.matchScore >= 75 ? 'text-yellow-400' :
+                              entry.matchScore >= 60 ? 'text-orange-400' : 'text-red-400'
+                            }`}>
+                              {entry.matchScore}%
+                            </span>
+                            <span className={`px-2 py-0.5 text-xs rounded-full ${
+                              entry.overallFit === 'excellent' ? 'bg-green-500/10 text-green-300 border border-green-500/30' :
+                              entry.overallFit === 'good' ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/30' :
+                              entry.overallFit === 'average' ? 'bg-orange-500/10 text-orange-300 border border-orange-500/30' :
+                              'bg-red-500/10 text-red-300 border border-red-500/30'
+                            }`}>
+                              {entry.overallFit}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 max-w-xs">
+                          <div className="flex flex-wrap gap-1">
+                            {(entry.matchedSkills || []).slice(0, 3).map((skill, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/30 text-[11px] text-green-300"
+                              >
+                                {skill}
+                              </span>
+                            ))}
+                            {(entry.matchedSkills || []).length > 3 && (
+                              <span className="text-[11px] text-gray-500">
+                                +{(entry.matchedSkills.length - 3)} more
+                              </span>
+                            )}
+                            {(!entry.matchedSkills || entry.matchedSkills.length === 0) && (
+                              <span className="text-[11px] text-gray-500">No matches</span>
+                            )}
+                          </div>
+                        </td>
+                      </>
+                    )}
                     <td className="px-4 py-3">
                       {entry.resumeUrl ? (
                         <div className="flex items-center gap-2">
@@ -983,8 +1349,8 @@ const HRCandidatePool = () => {
                 <p className="text-xs text-gray-400 mt-1">
                   {selectedEntry.type === 'candidate'
                     ? selectedEntry.appliedRole
-                      ? `Job Applicant • Applied for ${selectedEntry.appliedRole}`
-                      : 'Job Applicant'
+                      ? (selectedEntry.original?.isExEmployee ? 'Ex-Employee' : `Job Applicant • Applied for ${selectedEntry.appliedRole}`)
+                      : (selectedEntry.original?.isExEmployee ? 'Ex-Employee' : 'Job Applicant')
                     : selectedEntry.source || 'Resume Pool'}
                 </p>
               </div>
@@ -1387,6 +1753,118 @@ const HRCandidatePool = () => {
                   {error}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create JD Modal */}
+      {jdSearch.showCreateJD && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-[#2A2A3A] border border-gray-800 rounded-2xl shadow-xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+              <div>
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <Plus className="w-4 h-4 text-[#A88BFF]" />
+                  Create Job Description
+                </h2>
+                <p className="text-xs text-gray-400 mt-1">
+                  Upload JD file to enable AI-powered candidate matching
+                </p>
+              </div>
+              <button
+                onClick={() => setJdSearch(prev => ({ ...prev, showCreateJD: false }))}
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-5 py-4 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">
+                  Job Title <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={jdSearch.createJDData.jobTitle}
+                  onChange={(e) => setJdSearch(prev => ({
+                    ...prev,
+                    createJDData: { ...prev.createJDData, jobTitle: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
+                  placeholder="e.g. Senior Java Developer"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">
+                  Company Name
+                </label>
+                <input
+                  type="text"
+                  value={jdSearch.createJDData.companyName}
+                  onChange={(e) => setJdSearch(prev => ({
+                    ...prev,
+                    createJDData: { ...prev.createJDData, companyName: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 bg-[#1E1E2A] border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#A88BFF]"
+                  placeholder="e.g. Tech Solutions Pvt Ltd"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-2">
+                  JD File <span className="text-red-400">*</span>
+                </label>
+                <label className="flex flex-col items-center justify-center gap-2 px-4 py-6 border-2 border-dashed border-gray-700 rounded-xl bg-[#1E1E2A] text-gray-400 cursor-pointer hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors text-center text-xs">
+                  <FileText className="w-5 h-5" />
+                  {jdSearch.createJDFile ? (
+                    <>
+                      <span className="text-gray-200 text-sm">{jdSearch.createJDFile.name}</span>
+                      <span>Click to change file</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-gray-200 text-sm">Click to upload JD file</span>
+                      <span>PDF or DOCX (max 10MB)</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.docx,.doc"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setJdSearch(prev => ({ ...prev, createJDFile: file }));
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="px-5 py-4 border-t border-gray-800 flex items-center justify-between">
+              <p className="text-xs text-gray-500">
+                File will be parsed automatically for requirements
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setJdSearch(prev => ({ ...prev, showCreateJD: false }))}
+                  className="px-4 py-2 rounded-lg border border-gray-700 text-xs text-gray-300 hover:border-gray-500 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateJD}
+                  disabled={!jdSearch.createJDFile || !jdSearch.createJDData.jobTitle.trim()}
+                  className="px-4 py-2 rounded-lg bg-[#A88BFF] text-xs text-white font-medium hover:bg-[#B89CFF] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <Plus className="w-3 h-3" />
+                  Create JD
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -142,9 +142,21 @@ const TalentPoolList = () => {
         {filteredTalents.map((talent) => (
           <div key={talent._id} className="card hover:border-primary-600 transition-colors">
             <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-white">{talent.name}</h3>
-                <p className="text-sm text-gray-400">{talent.talentCode}</p>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-lg font-semibold text-white">{talent.name}</h3>
+                  {talent.isExEmployee && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-600/20 text-orange-400 border border-orange-600/30">
+                      Ex-Employee
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-400">
+                  {talent.talentCode}
+                  {talent.exEmployeeCode && (
+                    <span className="ml-2 text-gray-500">• Ex: {talent.exEmployeeCode}</span>
+                  )}
+                </p>
               </div>
               <select
                 value={talent.status}
@@ -184,6 +196,11 @@ const TalentPoolList = () => {
                   {talent.experience?.years || 0} years {talent.experience?.months || 0} months
                 </span>
               </div>
+              {talent.comments && talent.isExEmployee && (
+                <div className="mt-2 p-2 bg-orange-600/10 border border-orange-600/20 rounded text-xs text-orange-300">
+                  <span className="font-medium">Note:</span> {talent.comments}
+                </div>
+              )}
               {talent.skills && talent.skills.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
                   {talent.skills.slice(0, 3).map((skill, index) => (

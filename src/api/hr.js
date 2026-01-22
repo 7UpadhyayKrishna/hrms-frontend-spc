@@ -23,6 +23,11 @@ export const getEmployee = async (id) => {
   return response.data;
 };
 
+export const updateEmployee = async (id, data) => {
+  const response = await api.put(`/employees/${id}`, data);
+  return response.data;
+};
+
 // ==================== Leave Management ====================
 // Reuse existing leave endpoints
 export const getLeaves = async (params = {}) => {

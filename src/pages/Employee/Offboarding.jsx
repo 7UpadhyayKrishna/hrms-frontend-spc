@@ -111,7 +111,68 @@ const Offboarding = () => {
       params.append('limit', '10');
       
       const res = await api.get(`/offboarding?${params.toString()}`);
-      setList(res?.data?.data || []);
+      const offboardingList = res?.data?.data || [];
+      
+      // If employees are not populated, fetch them separately
+      const employeesMap = new Map();
+      const employeeIdsToFetch = [];
+      
+      offboardingList.forEach(item => {
+        if (item.employee && typeof item.employee === 'string') {
+          // Employee is just an ID string
+          employeeIdsToFetch.push(item.employee);
+        } else if (item.employee && item.employee._id) {
+          // Employee is already an object with _id
+          employeesMap.set(item.employee._id.toString(), item.employee);
+        } else if (item.employee && item.employee.firstName) {
+          // Already populated with data
+          employeesMap.set((item.employee._id || item.employeeId || '').toString(), item.employee);
+        } else if (item.employeeId && typeof item.employeeId === 'string') {
+          // Check employeeId field as fallback
+          employeeIdsToFetch.push(item.employeeId);
+        }
+      });
+      
+      // Fetch missing employee data from /employees endpoint
+      if (employeeIdsToFetch.length > 0) {
+        try {
+          const uniqueIds = [...new Set(employeeIdsToFetch)];
+          
+          // Fetch all employees and match by ID
+          const employeesRes = await api.get('/employees');
+          if (employeesRes?.data?.data) {
+            employeesRes.data.data.forEach(emp => {
+              if (uniqueIds.includes(emp._id.toString())) {
+                employeesMap.set(emp._id.toString(), emp);
+              }
+            });
+          }
+        } catch (err) {
+          console.error('Error fetching employee details:', err);
+        }
+      }
+      
+      // Merge employee data back into offboarding items
+      const processedList = offboardingList.map(item => {
+        const employeeId = item.employee?._id?.toString() || 
+                          (typeof item.employee === 'string' ? item.employee : null) ||
+                          item.employeeId?.toString() || 
+                          null;
+        
+        if (employeeId && employeesMap.has(employeeId)) {
+          item.employee = employeesMap.get(employeeId);
+        } else if (item.employee && typeof item.employee === 'object' && !item.employee.firstName) {
+          // Employee object exists but missing data - try to fetch
+          const id = item.employee._id || item.employee;
+          if (id && employeesMap.has(id.toString())) {
+            item.employee = employeesMap.get(id.toString());
+          }
+        }
+        
+        return item;
+      });
+      
+      setList(processedList);
       setSummary(res?.data?.summary || {});
       setTotalPages(res?.data?.pagination?.pages || 1);
     } catch (e) {
@@ -123,10 +184,67 @@ const Offboarding = () => {
 
   const fetchEmployees = async () => {
     try {
+      // Fetch all employees (backend already filters out ex-employees, but we'll double-check)
       const res = await api.get('/employees');
-      setEmployees(res?.data?.data || []);
+      const allEmployees = res?.data?.data || [];
+      
+      // Fetch active offboarding records to get employee IDs that are already being offboarded
+      const offboardingRes = await api.get('/offboarding', {
+        params: {
+          status: 'in-progress', // Only check in-progress offboardings
+          limit: 1000 // Get all to check all employees
+        }
+      });
+      
+      const activeOffboardings = offboardingRes?.data?.data || [];
+      const offboardingEmployeeIds = new Set();
+      
+      // Extract employee IDs from active offboarding records
+      activeOffboardings.forEach(offboarding => {
+        const employeeId = offboarding.employee?._id?.toString() || 
+                          (typeof offboarding.employee === 'string' ? offboarding.employee : null) ||
+                          offboarding.employeeId?.toString() || 
+                          null;
+        if (employeeId) {
+          offboardingEmployeeIds.add(employeeId);
+        }
+      });
+      
+      // Filter out employees who are already in offboarding AND ex-employees (safety check)
+      const availableEmployees = allEmployees.filter(emp => {
+        const empId = emp._id?.toString();
+        // Exclude if: already in offboarding, is ex-employee, or is not active
+        const isExcluded = !empId || 
+                          offboardingEmployeeIds.has(empId) || 
+                          emp.isExEmployee === true || 
+                          emp.isActive === false;
+        
+        if (isExcluded && emp.isExEmployee) {
+          console.log(`Excluding ex-employee from offboarding dropdown: ${emp.employeeCode || empId}`, emp);
+        }
+        
+        return !isExcluded;
+      });
+      
+      console.log(`Employee filtering: ${allEmployees.length} total, ${availableEmployees.length} available after filtering`);
+      setEmployees(availableEmployees);
+      
+      if (availableEmployees.length === 0) {
+        if (allEmployees.length === 0) {
+          toast.error('No employees found. Please add employees first.');
+        } else {
+          toast.warning('All employees are currently in offboarding process.');
+        }
+      } else if (availableEmployees.length < allEmployees.length) {
+        const excludedCount = allEmployees.length - availableEmployees.length;
+        console.log(`${excludedCount} employee(s) excluded - already in offboarding`);
+      }
+      
+      return availableEmployees;
     } catch (e) {
+      console.error('Error fetching employees:', e);
       toast.error('Failed to load employees');
+      return [];
     }
   };
 
@@ -313,7 +431,7 @@ const Offboarding = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-[#1E1E2A] space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -321,11 +439,11 @@ const Offboarding = () => {
           <p className="text-gray-400 mt-1">Manage employee exit process</p>
         </div>
         <button 
-          onClick={() => {
+          onClick={async () => {
+            await fetchEmployees();
             setShowInitiateModal(true);
-            fetchEmployees();
           }}
-          className="btn-primary flex items-center space-x-2 w-full sm:w-auto"
+          className="px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20 flex items-center gap-2 w-full sm:w-auto"
         >
           <Plus size={20} />
           <span>Initiate Offboarding</span>
@@ -334,7 +452,7 @@ const Offboarding = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="card p-4">
+        <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-4 shadow-xl">
           <div className="flex items-center space-x-3">
             <div className="p-2 rounded-lg bg-blue-500">
               <Users size={20} className="text-white" />
@@ -345,7 +463,7 @@ const Offboarding = () => {
             </div>
           </div>
         </div>
-        <div className="card p-4">
+        <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-4 shadow-xl">
           <div className="flex items-center space-x-3">
             <div className="p-2 rounded-lg bg-yellow-500">
               <Clock size={20} className="text-white" />
@@ -356,7 +474,7 @@ const Offboarding = () => {
             </div>
           </div>
         </div>
-        <div className="card p-4">
+        <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-4 shadow-xl">
           <div className="flex items-center space-x-3">
             <div className="p-2 rounded-lg bg-green-500">
               <CheckCircle size={20} className="text-white" />
@@ -367,7 +485,7 @@ const Offboarding = () => {
             </div>
           </div>
         </div>
-        <div className="card p-4">
+        <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-4 shadow-xl">
           <div className="flex items-center space-x-3">
             <div className="p-2 rounded-lg bg-red-500">
               <X size={20} className="text-white" />
@@ -432,7 +550,7 @@ const Offboarding = () => {
               setSearchTerm('');
               setCurrentPage(1);
             }}
-            className="btn-outline text-sm"
+            className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors text-sm"
           >
             <Filter size={16} className="mr-2" />
             Clear Filters
@@ -488,7 +606,7 @@ const Offboarding = () => {
           <button
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
-            className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Previous
           </button>
@@ -498,7 +616,7 @@ const Offboarding = () => {
           <button
             onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
-            className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
           </button>
@@ -606,35 +724,83 @@ const OffboardingCard = ({
   onProcessSettlement
 }) => {
   const [showActions, setShowActions] = useState(false);
-  const employee = item.employee || {};
+  
+  // Handle employee data - could be an object, ID string, or null
+  let employee = {};
+  if (item.employee) {
+    if (typeof item.employee === 'string') {
+      // Employee is just an ID, we can't display details without fetching
+      employee = { _id: item.employee };
+    } else if (typeof item.employee === 'object') {
+      employee = item.employee;
+    }
+  }
+  
+  // Also check for employeeId as fallback
+  if (!employee.firstName && item.employeeId) {
+    if (typeof item.employeeId === 'object' && item.employeeId.firstName) {
+      employee = item.employeeId;
+    }
+  }
+  
   const statusInfo = statusLabels[item.status] || statusLabels['in-progress'];
+  
+  // Get employee display name
+  const getEmployeeName = () => {
+    if (employee.firstName && employee.lastName) {
+      return `${employee.firstName} ${employee.lastName}`;
+    }
+    if (employee.firstName) {
+      return employee.firstName;
+    }
+    if (employee.name) {
+      return employee.name;
+    }
+    if (item.employeeName) {
+      return item.employeeName;
+    }
+    return 'Employee Name Not Available';
+  };
+  
+  // Get employee email
+  const getEmployeeEmail = () => {
+    return employee.email || item.employeeEmail || 'Email not available';
+  };
+  
+  // Get employee code
+  const getEmployeeCode = () => {
+    return employee.employeeCode || item.employeeCode || 'N/A';
+  };
 
   return (
-    <div className="card hover:border-primary-600 transition-colors">
+    <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl hover:border-[#A88BFF]/50 transition-colors">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <div className="flex items-center space-x-3 mb-2">
-            <div className="w-12 h-12 bg-primary-600/20 rounded-lg flex items-center justify-center">
-              <User size={24} className="text-primary-500" />
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#A88BFF] to-[#7DB539] flex items-center justify-center shadow-lg">
+              <span className="text-white font-bold text-sm">
+                {employee.firstName?.[0] || employee.name?.[0] || 'E'}
+                {employee.lastName?.[0] || ''}
+              </span>
             </div>
             <div>
               <h3 className="text-lg font-semibold text-white">
-                {employee.firstName && employee.lastName 
-                  ? `${employee.firstName} ${employee.lastName}` 
-                  : 'Employee Name Not Available'}
+                {getEmployeeName()}
               </h3>
-              <p className="text-sm text-gray-400">{employee.email || 'Email not available'}</p>
+              <p className="text-sm text-gray-400">{getEmployeeEmail()}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
             <div>
               <p className="text-xs text-gray-500">Employee Code</p>
-              <p className="text-sm text-gray-300">{employee.employeeCode || 'N/A'}</p>
+              <p className="text-sm text-gray-300">{getEmployeeCode()}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Department</p>
-              <p className="text-sm text-gray-300">{employee.department?.name || 'N/A'}</p>
+              <p className="text-sm text-gray-300">
+                {employee.department?.name || employee.departmentId?.name || item.departmentName || 'N/A'}
+              </p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Resignation Type</p>
@@ -746,7 +912,7 @@ const OffboardingCard = ({
         {item.status === 'in-progress' && (
           <button
             onClick={() => onAdvanceStage(item._id)}
-            className="btn-primary text-sm"
+            className="px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20 text-sm"
           >
             Advance Stage
           </button>
@@ -777,78 +943,94 @@ const InitiateOffboardingModal = ({ employees, onClose, onSubmit }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-white">Initiate Offboarding</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-[#2A2A3A] rounded-2xl border border-gray-800 p-6 w-full max-w-md mx-4 shadow-2xl">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-bold text-white">Initiate Offboarding</h2>
+            <p className="text-sm text-gray-400 mt-1">Start the offboarding process for an employee</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
             <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Employee *
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Employee <span className="text-red-400">*</span>
             </label>
             <select
               value={formData.employeeId}
               onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-              className="input-field w-full"
+              className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all cursor-pointer"
               required
+              disabled={!employees || employees.length === 0}
             >
-              <option value="">Select Employee</option>
-              {employees.map((emp) => (
-                <option key={emp._id} value={emp._id}>
-                  {emp.firstName} {emp.lastName} - {emp.email}
-                </option>
-              ))}
+              <option value="" className="bg-[#1E1E2A] text-gray-400">Select Employee</option>
+              {employees && employees.length > 0 ? (
+                employees.map((emp) => (
+                  <option key={emp._id} value={emp._id} className="bg-[#1E1E2A] text-white">
+                    {emp.firstName || ''} {emp.lastName || ''} {emp.email ? `- ${emp.email}` : ''} {emp.employeeCode ? `(${emp.employeeCode})` : ''}
+                  </option>
+                ))
+              ) : (
+                <option value="" disabled className="bg-[#1E1E2A] text-gray-500">No employees available</option>
+              )}
             </select>
+            {(!employees || employees.length === 0) && (
+              <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <p className="text-xs text-yellow-400 flex items-center gap-1">
+                  <AlertCircle size={12} />
+                  All employees are currently in offboarding process or no employees found.
+                </p>
+              </div>
+            )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Reason *
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Reason <span className="text-red-400">*</span>
             </label>
             <select
               value={formData.reason}
               onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-              className="input-field w-full"
+              className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all cursor-pointer"
               required
             >
-              <option value="">Select Reason</option>
-              <option value="voluntary_resignation">Voluntary Resignation</option>
-              <option value="involuntary_termination">Involuntary Termination</option>
-              <option value="retirement">Retirement</option>
-              <option value="contract_end">Contract End</option>
+              <option value="" className="bg-[#1E1E2A] text-gray-400">Select Reason</option>
+              <option value="voluntary_resignation" className="bg-[#1E1E2A] text-white">Voluntary Resignation</option>
+              <option value="involuntary_termination" className="bg-[#1E1E2A] text-white">Involuntary Termination</option>
+              <option value="retirement" className="bg-[#1E1E2A] text-white">Retirement</option>
+              <option value="contract_end" className="bg-[#1E1E2A] text-white">Contract End</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Last Working Day *
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Last Working Day <span className="text-red-400">*</span>
             </label>
             <input
               type="date"
               value={formData.lastWorkingDay}
               onChange={(e) => setFormData({ ...formData, lastWorkingDay: e.target.value })}
-              className="input-field w-full"
+              className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
               required
             />
           </div>
 
-          <div className="flex space-x-3 pt-4">
+          <div className="flex gap-3 pt-4 border-t border-gray-800">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700"
+              className="flex-1 px-5 py-2.5 text-gray-300 border border-gray-700 rounded-lg hover:bg-gray-700 hover:text-white hover:border-gray-600 transition-all"
               disabled={submitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 btn-primary"
+              className="flex-1 px-5 py-2.5 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-[#A88BFF]/20"
               disabled={submitting}
             >
               {submitting ? 'Creating...' : 'Initiate Offboarding'}
@@ -962,7 +1144,7 @@ const OffboardingDetailsModal = ({
           {offboarding.exitInterview && (
             <div>
               <h3 className="text-lg font-semibold text-white mb-4">Exit Interview</h3>
-              <div className="card p-4">
+              <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-4 shadow-xl">
                 {offboarding.exitInterview.completed ? (
                   <div>
                     <p className="text-sm text-green-400 mb-2">Completed</p>
@@ -985,7 +1167,7 @@ const OffboardingDetailsModal = ({
           {offboarding.finalSettlement && (
             <div>
               <h3 className="text-lg font-semibold text-white mb-4">Final Settlement</h3>
-              <div className="card p-4">
+              <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-4 shadow-xl">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-gray-500">Amount</p>
@@ -1009,19 +1191,19 @@ const OffboardingDetailsModal = ({
           {/* Actions */}
           {offboarding.status === 'in-progress' && (
             <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-700">
-              <button onClick={() => onAdvanceStage(offboarding._id)} className="btn-primary">
+              <button onClick={() => onAdvanceStage(offboarding._id)} className="px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20">
                 Advance Stage
               </button>
-              <button onClick={onScheduleExitInterview} className="btn-outline">
+              <button onClick={onScheduleExitInterview} className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors">
                 Schedule Exit Interview
               </button>
-              <button onClick={onUpdateClearance} className="btn-outline">
+              <button onClick={onUpdateClearance} className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors">
                 Update Clearance
               </button>
-              <button onClick={onRecordAsset} className="btn-outline">
+              <button onClick={onRecordAsset} className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors">
                 Record Asset Return
               </button>
-              <button onClick={onProcessSettlement} className="btn-outline">
+              <button onClick={onProcessSettlement} className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors">
                 Process Settlement
               </button>
             </div>
@@ -1094,7 +1276,7 @@ const EditOffboardingModal = ({ offboarding, onClose, onSave }) => {
             </button>
             <button
               type="submit"
-              className="flex-1 btn-primary"
+              className="flex-1 px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20"
               disabled={submitting}
             >
               {submitting ? 'Saving...' : 'Save Changes'}
@@ -1130,7 +1312,7 @@ const ExitInterviewModal = ({ offboarding, employees, onClose, onSchedule, onCom
                 <p className="text-sm text-gray-300">{offboarding.exitInterview.feedback}</p>
               </div>
             )}
-            <button onClick={onClose} className="btn-primary w-full">
+            <button onClick={onClose} className="px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20 w-full">
               Close
             </button>
           </div>
@@ -1168,7 +1350,7 @@ const ExitInterviewModal = ({ offboarding, employees, onClose, onSchedule, onCom
             </div>
             <button
               onClick={() => onComplete(feedback)}
-              className="btn-primary w-full"
+              className="px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20 w-full"
             >
               Complete Interview
             </button>
@@ -1188,7 +1370,7 @@ const ExitInterviewModal = ({ offboarding, employees, onClose, onSchedule, onCom
             </div>
             <button
               onClick={() => onSchedule({ scheduledDate, conductedBy })}
-              className="btn-primary w-full"
+              className="px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20 w-full"
             >
               Schedule Interview
             </button>
@@ -1271,7 +1453,7 @@ const ClearanceModal = ({ offboarding, onClose, onUpdate }) => {
             </button>
             <button
               type="submit"
-              className="flex-1 btn-primary"
+              className="flex-1 px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20"
             >
               Update Clearance
             </button>
@@ -1343,7 +1525,7 @@ const AssetReturnModal = ({ offboarding, onClose, onRecord }) => {
             </button>
             <button
               type="submit"
-              className="flex-1 btn-primary"
+              className="flex-1 px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20"
             >
               Record Return
             </button>
@@ -1413,7 +1595,7 @@ const SettlementModal = ({ offboarding, onClose, onProcess }) => {
             </button>
             <button
               type="submit"
-              className="flex-1 btn-primary"
+              className="flex-1 px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20"
             >
               Process Settlement
             </button>
