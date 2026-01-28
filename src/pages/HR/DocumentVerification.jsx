@@ -122,19 +122,21 @@ const DocumentVerification = () => {
     }
   };
 
-  const handleDownload = async (documentId, fileName) => {
+  const handleDownload = async (doc) => {
     try {
-      const blob = await downloadDocument(documentId);
+      // Always use secure download API so it works in all environments
+      const blob = await downloadDocument(doc._id);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = fileName;
+      a.download = doc.originalFileName || doc.documentName || 'document';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       toast.success('Document downloaded');
     } catch (error) {
+      console.error('Download error:', error);
       toast.error('Failed to download document');
     }
   };
@@ -335,7 +337,7 @@ const DocumentVerification = () => {
 
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => handleDownload(doc._id, doc.originalFileName)}
+                            onClick={() => handleDownload(doc)}
                             className="p-2 hover:bg-dark-700 rounded-lg transition-colors"
                             title="Download"
                           >

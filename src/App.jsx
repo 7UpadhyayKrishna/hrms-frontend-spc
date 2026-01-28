@@ -47,6 +47,7 @@ import BulkEmployeeUpload from './pages/Employee/BulkEmployeeUpload';
 import ResumeSearch from './pages/HRDashboard/ResumeSearch';
 import ResumeParser from './pages/HRDashboard/ResumeParser';
 import HRCandidatePool from './pages/HRDashboard/HRCandidatePool';
+import DocumentVerification from './pages/HR/DocumentVerification';
 
 // Contract Management Pages
 import ContractDashboard from './pages/Contracts/ContractDashboard';
@@ -131,6 +132,7 @@ function App() {
             <Route path="hr/candidate-pool" element={<HRCandidatePool />} />
             <Route path="hr/resume-search" element={<ResumeSearch />} />
             <Route path="hr/resume-parser" element={<ResumeParser />} />
+            <Route path="hr/document-verification" element={<DocumentVerification />} />
           </Route>
 
           <Route

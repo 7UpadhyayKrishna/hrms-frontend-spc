@@ -98,6 +98,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       path: '/employee/hr/resume-search'
     },
     {
+      key: 'document-verification',
+      label: 'Document Verification',
+      icon: ShieldCheck,
+      path: '/employee/hr/document-verification'
+    },
+    {
       key: 'contracts',
       label: 'Contracts',
       icon: FileContract,
