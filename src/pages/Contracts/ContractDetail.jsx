@@ -23,16 +23,21 @@ import {
   terminateContract,
   updateDeliverable
 } from '../../api/contracts';
+import { useAuth } from '../../context/AuthContext';
 
 const ContractDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [contract, setContract] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showRenewModal, setShowRenewModal] = useState(false);
   const [showTerminateModal, setShowTerminateModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+
+  // Check if user has admin privileges
+  const isAdmin = user?.role === 'admin' || user?.role === 'company_admin' || user?.role === 'superadmin';
 
   const [renewData, setRenewData] = useState({
     newEndDate: '',
@@ -230,7 +235,7 @@ const ContractDetail = () => {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-3">
-          {contract.approvalStatus === 'pending' && (
+          {contract.approvalStatus === 'pending' && isAdmin && (
             <>
               <button
                 onClick={handleApprove}
