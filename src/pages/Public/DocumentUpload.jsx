@@ -47,7 +47,7 @@ const DocumentUpload = () => {
     }
   };
 
-  const handleFileSelect = async (documentType, file) => {
+  const handleFileSelect = async (documentType, file, originalDocumentId = null) => {
     if (!file) return;
 
     const docConfig = documentConfigs.find(dc => dc.documentType === documentType);
@@ -81,7 +81,8 @@ const DocumentUpload = () => {
         file,
         (progress) => {
           setUploadProgress(prev => ({ ...prev, [documentType]: progress }));
-        }
+        },
+        originalDocumentId
       );
 
       if (response.success) {
@@ -101,15 +102,8 @@ const DocumentUpload = () => {
     }
   };
 
-  const getDocumentStatus = (documentType) => {
-    const uploaded = uploadedDocs.find(doc => doc.documentType === documentType);
-    if (!uploaded) return null;
-    return uploaded.verificationStatus;
-  };
-
-  const getDocumentFileName = (documentType) => {
-    const uploaded = uploadedDocs.find(doc => doc.documentType === documentType);
-    return uploaded?.fileName || null;
+  const getDocumentsByType = (documentType) => {
+    return uploadedDocs.filter(doc => doc.documentType === documentType);
   };
 
   const getRejectionReason = (documentType) => {
@@ -243,11 +237,13 @@ const DocumentUpload = () => {
         {/* Document Upload Cards */}
         <div className="space-y-4">
           {documentConfigs.map((docConfig) => {
-            const status = getDocumentStatus(docConfig.documentType);
-            const fileName = getDocumentFileName(docConfig.documentType);
+            const docsForType = getDocumentsByType(docConfig.documentType);
+            const latestDoc = docsForType[0] || null;
+            const status = latestDoc?.verificationStatus || null;
             const rejectionReason = getRejectionReason(docConfig.documentType);
             const isUploading = uploading[docConfig.documentType];
             const progress = uploadProgress[docConfig.documentType] || 0;
+            const isMultiUploadType = ['educational_certificate', 'experience_letter', 'training_certificate', 'other'].includes(docConfig.documentType);
 
             return (
               <div key={docConfig.documentType} className="bg-white rounded-xl shadow-md p-6">
@@ -272,6 +268,11 @@ const DocumentUpload = () => {
                     {docConfig.uploadInstructions && (
                       <p className="text-xs text-blue-600 mt-1">{docConfig.uploadInstructions}</p>
                     )}
+                    {isMultiUploadType && (
+                      <p className="text-xs text-indigo-600 mt-1">
+                        You can upload multiple documents for this category.
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {status && getStatusIcon(status)}
@@ -288,11 +289,50 @@ const DocumentUpload = () => {
                   </div>
                 </div>
 
-                {fileName && (
+                {docsForType.length > 0 && (
                   <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                    <p className="text-sm text-gray-700">
-                      <strong>Uploaded:</strong> {fileName}
+                    <p className="text-sm font-semibold text-gray-800 mb-1">
+                      Uploaded document{docsForType.length > 1 ? 's' : ''}:
                     </p>
+                    <ul className="space-y-2 text-sm text-gray-700">
+                      {docsForType.map((doc, index) => (
+                        <li
+                          key={doc.documentId || `${doc.documentType}-${index}`}
+                          className="flex flex-col md:flex-row md:items-center md:justify-between gap-2"
+                        >
+                          <span className="truncate">{doc.fileName}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="flex items-center gap-1">
+                              {getStatusIcon(doc.verificationStatus)}
+                              <span className="text-xs">
+                                {getStatusText(doc.verificationStatus)}
+                              </span>
+                            </span>
+                            <div>
+                              <input
+                                type="file"
+                                id={`file-${docConfig.documentType}-${doc.documentId || index}`}
+                                className="hidden"
+                                accept={docConfig.allowedFormats.map(f => `.${f}`).join(',')}
+                                onChange={(e) =>
+                                  handleFileSelect(
+                                    docConfig.documentType,
+                                    e.target.files[0],
+                                    doc.documentId
+                                  )
+                                }
+                              />
+                              <label
+                                htmlFor={`file-${docConfig.documentType}-${doc.documentId || index}`}
+                                className="inline-flex items-center justify-center px-3 py-1 text-xs font-medium rounded-md cursor-pointer bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200"
+                              >
+                                Re-upload
+                              </label>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
 
@@ -318,25 +358,30 @@ const DocumentUpload = () => {
                     </div>
                   </div>
                 ) : (
-                  <div>
-                    <input
-                      type="file"
-                      id={`file-${docConfig.documentType}`}
-                      className="hidden"
-                      accept={docConfig.allowedFormats.map(f => `.${f}`).join(',')}
-                      onChange={(e) => handleFileSelect(docConfig.documentType, e.target.files[0])}
-                    />
-                    <label
-                      htmlFor={`file-${docConfig.documentType}`}
-                      className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition-colors ${
-                        status === 'verified'
-                          ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                      }`}
-                    >
-                      <Upload className="w-4 h-4" />
-                      {status ? 'Re-upload Document' : 'Upload Document'}
-                    </label>
+                  <div className="flex flex-wrap gap-3">
+                    {/* Main upload / add more button */}
+                    <div>
+                      <input
+                        type="file"
+                        id={`file-${docConfig.documentType}`}
+                        className="hidden"
+                        accept={docConfig.allowedFormats.map(f => `.${f}`).join(',')}
+                        onChange={(e) => handleFileSelect(docConfig.documentType, e.target.files[0])}
+                      />
+                      <label
+                        htmlFor={`file-${docConfig.documentType}`}
+                        className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition-colors ${
+                          status === 'verified'
+                            ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        }`}
+                      >
+                        <Upload className="w-4 h-4" />
+                        {isMultiUploadType
+                          ? (docsForType.length > 0 ? 'Add more' : 'Upload Document')
+                          : (status ? 'Re-upload Document' : 'Upload Document')}
+                      </label>
+                    </div>
                   </div>
                 )}
               </div>
