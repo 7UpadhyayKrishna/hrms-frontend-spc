@@ -96,6 +96,7 @@ const CandidateList = () => {
     email: candidate.email || '',
     phone: candidate.phone || '',
     currentLocation: candidate.currentLocation || '',
+    employmentType: candidate.employmentType || 'full-time',
     experience: {
       years: candidate.experience?.years ?? null,
       months: candidate.experience?.months ?? null
@@ -877,6 +878,7 @@ const CandidateList = () => {
                 <th className="px-4 py-3 text-left">Email</th>
                 <th className="px-4 py-3 text-left">Phone</th>
                 <th className="px-4 py-3 text-left">Location</th>
+                <th className="px-4 py-3 text-left">Employment Type</th>
                 <th className="px-4 py-3 text-left">Skills</th>
                 {jdSearch.showResults && (
                   <>
@@ -891,7 +893,7 @@ const CandidateList = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={jdSearch.showResults ? 9 : 7} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={jdSearch.showResults ? 10 : 8} className="px-4 py-10 text-center text-gray-400">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin text-[#A88BFF]" />
                       <span>Loading candidate pool...</span>
@@ -900,7 +902,7 @@ const CandidateList = () => {
                 </tr>
               ) : entries.length === 0 ? (
                 <tr>
-                  <td colSpan={jdSearch.showResults ? 9 : 7} className="px-4 py-10 text-center text-gray-500 text-sm">
+                  <td colSpan={jdSearch.showResults ? 10 : 8} className="px-4 py-10 text-center text-gray-500 text-sm">
                     No candidates found yet. Adjust filters or add resumes manually.
                   </td>
                 </tr>
@@ -949,6 +951,19 @@ const CandidateList = () => {
                     <td className="px-4 py-3">
                       <span className="text-xs text-gray-300">
                         {entry.currentLocation || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-1 rounded-full text-xs font-medium capitalize
+                        ${entry.employmentType === 'full-time' ? 'bg-blue-500/10 text-blue-300 border border-blue-500/30' :
+                          entry.employmentType === 'part-time' ? 'bg-green-500/10 text-green-300 border border-green-500/30' :
+                          entry.employmentType === 'contract' ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/30' :
+                          entry.employmentType === 'contract-based' ? 'bg-orange-500/10 text-orange-300 border border-orange-500/30' :
+                          entry.employmentType === 'deliverable-based' ? 'bg-purple-500/10 text-purple-300 border border-purple-500/30' :
+                          entry.employmentType === 'rate-based' ? 'bg-pink-500/10 text-pink-300 border border-pink-500/30' :
+                          entry.employmentType === 'hourly-based' ? 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/30' :
+                          'bg-gray-500/10 text-gray-300 border border-gray-500/30'}">
+                        {entry.employmentType?.replace('-', ' ') || 'full-time'}
                       </span>
                     </td>
                     <td className="px-4 py-3 max-w-xs">

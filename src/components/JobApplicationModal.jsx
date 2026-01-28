@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Upload, Loader, Briefcase, User, Mail, Phone, MapPin, DollarSign, GraduationCap, Award } from 'lucide-react';
+import { X, Upload, Loader, Briefcase, User, Mail, Phone, MapPin, DollarSign, GraduationCap, Award, BookOpen, Plus, Minus } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const JobApplicationModal = ({ job, onClose, onSubmit }) => {
@@ -40,6 +40,16 @@ const JobApplicationModal = ({ job, onClose, onSubmit }) => {
       institution: '',
       passingYear: '',
       percentage: ''
+    }],
+    trainingCertificates: [{
+      type: 'training', // 'training' or 'certificate'
+      name: '',
+      issuingOrganization: '',
+      completionDate: '',
+      expiryDate: '',
+      credentialId: '',
+      credentialUrl: '',
+      description: ''
     }],
     resume: null
   });
@@ -99,6 +109,44 @@ const JobApplicationModal = ({ job, onClose, onSubmit }) => {
         education: prev.education.filter((_, i) => i !== index)
       }));
     }
+  };
+
+  // Training & Certificate handlers
+  const addTrainingCertificate = () => {
+    setFormData(prev => ({
+      ...prev,
+      trainingCertificates: [
+        ...prev.trainingCertificates,
+        {
+          type: 'training',
+          name: '',
+          issuingOrganization: '',
+          completionDate: '',
+          expiryDate: '',
+          credentialId: '',
+          credentialUrl: '',
+          description: ''
+        }
+      ]
+    }));
+  };
+
+  const removeTrainingCertificate = (index) => {
+    if (formData.trainingCertificates.length > 1) {
+      setFormData(prev => ({
+        ...prev,
+        trainingCertificates: prev.trainingCertificates.filter((_, i) => i !== index)
+      }));
+    }
+  };
+
+  const handleTrainingCertificateChange = (index, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      trainingCertificates: prev.trainingCertificates.map((cert, i) => 
+        i === index ? { ...cert, [field]: value } : cert
+      )
+    }));
   };
 
   const addSkill = () => {
@@ -264,6 +312,11 @@ const JobApplicationModal = ({ job, onClose, onSubmit }) => {
       formDataToSubmit.append('skills', JSON.stringify(formData.skills));
       formDataToSubmit.append('education', JSON.stringify(
         formData.education.filter(edu => edu.degree && edu.institution)
+      ));
+      
+      // Training & Certificates
+      formDataToSubmit.append('trainingCertificates', JSON.stringify(
+        formData.trainingCertificates.filter(cert => cert.name && cert.issuingOrganization)
       ));
       
       // Resume file
@@ -819,6 +872,142 @@ const JobApplicationModal = ({ job, onClose, onSubmit }) => {
               className="text-primary-400 hover:text-primary-300 text-sm font-medium"
             >
               + Add Another Education
+            </button>
+          </div>
+
+          {/* Training & Certificates */}
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
+              <BookOpen size={20} className="text-primary-400" />
+              <span>Training & Certificates</span>
+            </h3>
+            {formData.trainingCertificates.map((cert, index) => (
+              <div key={index} className="mb-4 p-4 bg-dark-800 rounded-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-white font-medium">
+                    {cert.type === 'certificate' ? 'Certificate' : 'Training'} {index + 1}
+                  </h4>
+                  {formData.trainingCertificates.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeTrainingCertificate(index)}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      <X size={18} />
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Type *
+                    </label>
+                    <select
+                      value={cert.type}
+                      onChange={(e) => handleTrainingCertificateChange(index, 'type', e.target.value)}
+                      className="w-full px-4 py-2 bg-dark-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="training">Training Program</option>
+                      <option value="certificate">Professional Certificate</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      {cert.type === 'certificate' ? 'Certificate Name' : 'Training Program Name'} *
+                    </label>
+                    <input
+                      type="text"
+                      value={cert.name}
+                      onChange={(e) => handleTrainingCertificateChange(index, 'name', e.target.value)}
+                      className="w-full px-4 py-2 bg-dark-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder={cert.type === 'certificate' ? 'e.g. AWS Certified Solutions Architect' : 'e.g. Advanced React Development'}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Issuing Organization *
+                    </label>
+                    <input
+                      type="text"
+                      value={cert.issuingOrganization}
+                      onChange={(e) => handleTrainingCertificateChange(index, 'issuingOrganization', e.target.value)}
+                      className="w-full px-4 py-2 bg-dark-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder="e.g. Amazon Web Services, Coursera, Udemy"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Completion Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={cert.completionDate}
+                      onChange={(e) => handleTrainingCertificateChange(index, 'completionDate', e.target.value)}
+                      className="w-full px-4 py-2 bg-dark-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                  {cert.type === 'certificate' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Expiry Date
+                        </label>
+                        <input
+                          type="date"
+                          value={cert.expiryDate}
+                          onChange={(e) => handleTrainingCertificateChange(index, 'expiryDate', e.target.value)}
+                          className="w-full px-4 py-2 bg-dark-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          placeholder="Leave empty if no expiry"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Credential ID
+                        </label>
+                        <input
+                          type="text"
+                          value={cert.credentialId}
+                          onChange={(e) => handleTrainingCertificateChange(index, 'credentialId', e.target.value)}
+                          className="w-full px-4 py-2 bg-dark-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          placeholder="e.g. AWS-ASA-123456"
+                        />
+                      </div>
+                    </>
+                  )}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Credential URL
+                    </label>
+                    <input
+                      type="url"
+                      value={cert.credentialUrl}
+                      onChange={(e) => handleTrainingCertificateChange(index, 'credentialUrl', e.target.value)}
+                      className="w-full px-4 py-2 bg-dark-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder="https://certificate-verification-url.com"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      value={cert.description}
+                      onChange={(e) => handleTrainingCertificateChange(index, 'description', e.target.value)}
+                      rows={3}
+                      className="w-full px-4 py-2 bg-dark-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder="Brief description of what you learned or achieved..."
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addTrainingCertificate}
+              className="w-full py-2 border-2 border-dashed border-gray-600 rounded-lg text-gray-400 hover:border-primary-500 hover:text-primary-400 transition-colors flex items-center justify-center space-x-2"
+            >
+              <Plus size={16} />
+              <span>Add Training/Certificate</span>
             </button>
           </div>
 
