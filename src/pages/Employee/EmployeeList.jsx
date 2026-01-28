@@ -191,18 +191,30 @@ const EmployeeList = () => {
                     <span className="text-sm text-gray-300">{employee.phone || 'N/A'}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full ${
-                      employee.status === 'active' 
-                        ? 'bg-green-500/10 text-green-400 border border-green-500/30'
-                        : employee.status === 'inactive'
-                        ? 'bg-gray-500/10 text-gray-400 border border-gray-500/30'
-                        : employee.status === 'on-leave'
-                        ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30'
-                        : 'bg-red-500/10 text-red-400 border border-red-500/30'
-                    }`}>
-                      {employee.status === 'active' && <CheckCircle size={12} className="text-green-400" />}
-                      {employee.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full ${
+                        employee.status === 'active' 
+                          ? 'bg-green-500/10 text-green-400 border border-green-500/30'
+                          : employee.status === 'inactive'
+                          ? 'bg-gray-500/10 text-gray-400 border border-gray-500/30'
+                          : employee.status === 'on-leave'
+                          ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30'
+                          : 'bg-red-500/10 text-red-400 border border-red-500/30'
+                      }`}>
+                        {employee.status === 'active' && <CheckCircle size={12} className="text-green-400" />}
+                        {employee.status}
+                      </span>
+                      {employee.hasActiveContract && (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30">
+                          Contract
+                        </span>
+                      )}
+                      {employee.employmentType && employee.employmentType.startsWith('contract-') && !employee.hasActiveContract && (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/30">
+                          Contract (Pending)
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-2">

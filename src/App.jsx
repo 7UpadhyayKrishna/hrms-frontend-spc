@@ -49,6 +49,12 @@ import ResumeParser from './pages/HRDashboard/ResumeParser';
 import HRCandidatePool from './pages/HRDashboard/HRCandidatePool';
 import DocumentVerification from './pages/HR/DocumentVerification';
 
+// Contract Management Pages
+import ContractDashboard from './pages/Contracts/ContractDashboard';
+import ContractList from './pages/Contracts/ContractList';
+import ContractCreate from './pages/Contracts/ContractCreate';
+import ContractDetail from './pages/Contracts/ContractDetail';
+
 function App() {
   return (
     <ThemeProvider>
@@ -167,6 +173,21 @@ function App() {
             <Route path=":id" element={<EmployeeDetail />} />
             <Route path="onboarding" element={<Onboarding />} />
             <Route path="offboarding" element={<Offboarding />} />
+          </Route>
+
+          {/* Contract Management Routes */}
+          <Route
+            path="/contracts/*"
+            element={
+              <ProtectedRoute roles={['hr', 'admin', 'company_admin']}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<ContractList />} />
+            <Route path="dashboard" element={<ContractDashboard />} />
+            <Route path="create" element={<ContractCreate />} />
+            <Route path=":id" element={<ContractDetail />} />
           </Route>
           </Routes>
           </Router>
