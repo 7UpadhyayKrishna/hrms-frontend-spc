@@ -109,7 +109,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       icon: FileContract,
       path: '/contracts',
       children: [
-        { label: 'Dashboard', path: '/contracts/dashboard' },
         { label: 'All Contracts', path: '/contracts' },
         { label: 'Create Contract', path: '/contracts/create' }
       ]
@@ -161,6 +160,17 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         path: '/hr-activity-history'
       },
       {
+        key: 'contracts',
+        label: 'Contracts',
+        icon: FileContract,
+        path: '/contracts',
+        children: [
+          { label: 'Dashboard', path: '/contracts/dashboard' },
+          { label: 'All Contracts', path: '/contracts' },
+          { label: 'Create Contract', path: '/contracts/create' }
+        ]
+      },
+      {
         key: 'employees',
         label: 'Employee Management',
         icon: User,
@@ -179,6 +189,17 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   } else if (isAdmin) {
     menuItems = [
       ...adminMenuItems,
+      {
+        key: 'contracts',
+        label: 'Contracts',
+        icon: FileContract,
+        path: '/contracts',
+        children: [
+          { label: 'Dashboard', path: '/contracts/dashboard' },
+          { label: 'All Contracts', path: '/contracts' },
+          { label: 'Create Contract', path: '/contracts/create' }
+        ]
+      },
       {
         key: 'employees',
         label: 'Employee Management',

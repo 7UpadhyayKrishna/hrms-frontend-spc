@@ -185,7 +185,14 @@ function App() {
             }
           >
             <Route index element={<ContractList />} />
-            <Route path="dashboard" element={<ContractDashboard />} />
+            <Route
+              path="dashboard"
+              element={
+                <ProtectedRoute roles={['admin', 'company_admin']}>
+                  <ContractDashboard />
+                </ProtectedRoute>
+              }
+            />
             <Route path="create" element={<ContractCreate />} />
             <Route path=":id" element={<ContractDetail />} />
           </Route>
