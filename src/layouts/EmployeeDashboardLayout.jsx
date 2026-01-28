@@ -11,7 +11,8 @@ import {
   ChevronDown,
   Users,
   Search,
-  FileText
+  FileText,
+  ShieldCheck
 } from 'lucide-react';
 
 const EmployeeDashboardLayout = () => {
@@ -30,6 +31,7 @@ const EmployeeDashboardLayout = () => {
     { name: 'Candidate Pool', href: '/employee/hr/candidate-pool', icon: Users },
     { name: 'Resume Parser', href: '/employee/hr/resume-parser', icon: FileText },
     { name: 'Resume Search', href: '/employee/hr/resume-search', icon: Search },
+    { name: 'Document Verification', href: '/employee/hr/document-verification', icon: ShieldCheck },
     { name: 'My Profile', href: '/employee/profile', icon: User },
   ];
   const navigation = isHR ? hrNavigation : [];

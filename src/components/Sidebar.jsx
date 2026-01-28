@@ -95,6 +95,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       label: 'Resume Search',
       icon: Search,
       path: '/employee/hr/resume-search'
+    },
+    {
+      key: 'document-verification',
+      label: 'Document Verification',
+      icon: ShieldCheck,
+      path: '/employee/hr/document-verification'
     }
   ];
 
