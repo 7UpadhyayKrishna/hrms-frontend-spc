@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Building,
   History,
+  FileText as FileContract,
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
@@ -95,6 +96,17 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       label: 'Resume Search',
       icon: Search,
       path: '/employee/hr/resume-search'
+    },
+    {
+      key: 'contracts',
+      label: 'Contracts',
+      icon: FileContract,
+      path: '/contracts',
+      children: [
+        { label: 'Dashboard', path: '/contracts/dashboard' },
+        { label: 'All Contracts', path: '/contracts' },
+        { label: 'Create Contract', path: '/contracts/create' }
+      ]
     }
   ];
 

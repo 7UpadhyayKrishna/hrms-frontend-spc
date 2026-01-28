@@ -106,8 +106,26 @@ const EmployeeDetail = () => {
             </div>
             <div>
               <p className="text-sm text-gray-400">Employment Type</p>
-              <p className="text-white capitalize">{employee.employmentType}</p>
+              <p className="text-white capitalize">
+                {employee.employmentType?.replace(/-/g, ' ') || 'Full Time'}
+              </p>
+              {employee.hasActiveContract && (
+                <span className="inline-block mt-1 px-2 py-1 text-xs bg-green-500/10 text-green-400 border border-green-500/20 rounded">
+                  Active Contract
+                </span>
+              )}
             </div>
+            {employee.contractId && (
+              <div>
+                <p className="text-sm text-gray-400">Contract</p>
+                <button
+                  onClick={() => navigate(`/contracts/${employee.contractId}`)}
+                  className="text-primary-400 hover:text-primary-300 text-sm underline"
+                >
+                  View Contract Details
+                </button>
+              </div>
+            )}
             <div>
               <p className="text-sm text-gray-400">Joining Date</p>
               <p className="text-white">
