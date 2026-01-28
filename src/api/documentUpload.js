@@ -18,11 +18,14 @@ export const validateToken = async (token, tenantId) => {
 /**
  * Upload document
  */
-export const uploadDocument = async (token, tenantId, documentType, file, onProgress) => {
+export const uploadDocument = async (token, tenantId, documentType, file, onProgress, originalDocumentId) => {
   const formData = new FormData();
   formData.append('document', file);
   formData.append('tenantId', tenantId);
   formData.append('documentType', documentType);
+  if (originalDocumentId) {
+    formData.append('originalDocumentId', originalDocumentId);
+  }
 
   const response = await api.post(
     `/public/document-upload/upload/${token}`,

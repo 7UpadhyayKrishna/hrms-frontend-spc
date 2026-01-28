@@ -411,7 +411,9 @@ const EmployeeAdd = () => {
                 className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
               >
                 <option value="full-time">Full Time</option>
-                <option value="part-time">Part Time</option>
+                <option value="contract-fixed-deliverable">Contract - Fixed Deliverable</option>
+                <option value="contract-rate-based">Contract - Rate Based</option>
+                <option value="contract-hourly-based">Contract - Hourly Based</option>
                 <option value="contract">Contract</option>
                 <option value="intern">Intern</option>
               </select>

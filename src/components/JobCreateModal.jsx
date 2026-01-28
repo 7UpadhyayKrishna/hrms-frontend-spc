@@ -17,7 +17,14 @@ const JobCreateModal = ({ isOpen, onClose, onJobCreated, onJobUpdated, editingJo
     skills: [''],
     openings: 1,
     closingDate: '',
-    status: 'draft'
+    status: 'draft',
+    // Employment type specific fields
+    contractDuration: '',
+    hourlyRate: '',
+    deliverables: [''],
+    rateAmount: '',
+    ratePeriod: 'monthly',
+    workHours: ''
   });
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -40,7 +47,14 @@ const JobCreateModal = ({ isOpen, onClose, onJobCreated, onJobUpdated, editingJo
           skills: editingJob.skills?.length > 0 ? editingJob.skills : [''],
           openings: editingJob.openings || 1,
           closingDate: editingJob.closingDate ? editingJob.closingDate.split('T')[0] : '',
-          status: editingJob.status || 'draft'
+          status: editingJob.status || 'draft',
+          // Employment type specific fields
+          contractDuration: editingJob.contractDuration || '',
+          hourlyRate: editingJob.hourlyRate || '',
+          deliverables: editingJob.deliverables?.length > 0 ? editingJob.deliverables : [''],
+          rateAmount: editingJob.rateAmount || '',
+          ratePeriod: editingJob.ratePeriod || 'monthly',
+          workHours: editingJob.workHours || ''
         });
       } else {
         setFormData({
@@ -56,7 +70,14 @@ const JobCreateModal = ({ isOpen, onClose, onJobCreated, onJobUpdated, editingJo
           skills: [''],
           openings: 1,
           closingDate: '',
-          status: 'draft'
+          status: 'draft',
+          // Employment type specific fields
+          contractDuration: '',
+          hourlyRate: '',
+          deliverables: [''],
+          rateAmount: '',
+          ratePeriod: 'monthly',
+          workHours: ''
         });
       }
     }
@@ -135,6 +156,7 @@ const JobCreateModal = ({ isOpen, onClose, onJobCreated, onJobUpdated, editingJo
         requirements: formData.requirements.filter(req => req.trim() !== ''),
         responsibilities: formData.responsibilities.filter(resp => resp.trim() !== ''),
         skills: formData.skills.filter(skill => skill.trim() !== ''),
+        deliverables: formData.deliverables.filter(del => del.trim() !== ''),
         experience: {
           min: formData.experience.min ? Number(formData.experience.min) : undefined,
           max: formData.experience.max ? Number(formData.experience.max) : undefined
@@ -144,6 +166,8 @@ const JobCreateModal = ({ isOpen, onClose, onJobCreated, onJobUpdated, editingJo
           max: formData.salary.max ? Number(formData.salary.max) : undefined,
           currency: formData.salary.currency
         },
+        hourlyRate: formData.hourlyRate ? Number(formData.hourlyRate) : undefined,
+        rateAmount: formData.rateAmount ? Number(formData.rateAmount) : undefined,
         openings: Number(formData.openings),
         closingDate: formData.closingDate || undefined
       };
@@ -172,7 +196,15 @@ const JobCreateModal = ({ isOpen, onClose, onJobCreated, onJobUpdated, editingJo
         responsibilities: [''],
         skills: [''],
         openings: 1,
-        closingDate: ''
+        closingDate: '',
+        status: 'draft',
+        // Employment type specific fields
+        contractDuration: '',
+        hourlyRate: '',
+        deliverables: [''],
+        rateAmount: '',
+        ratePeriod: 'monthly',
+        workHours: ''
       });
     } catch (error) {
       toast.error(error.response?.data?.message || `Failed to ${editingJob ? 'update' : 'create'} job posting`);
@@ -264,6 +296,10 @@ const JobCreateModal = ({ isOpen, onClose, onJobCreated, onJobUpdated, editingJo
                 <option value="part-time">Part Time</option>
                 <option value="contract">Contract</option>
                 <option value="intern">Intern</option>
+                <option value="contract-based">Contract Based</option>
+                <option value="deliverable-based">Deliverable Based</option>
+                <option value="rate-based">Rate Based</option>
+                <option value="hourly-based">Hourly Based</option>
               </select>
             </div>
 
@@ -312,6 +348,176 @@ const JobCreateModal = ({ isOpen, onClose, onJobCreated, onJobUpdated, editingJo
               </p>
             </div>
           </div>
+
+          {/* Employment Type Specific Fields */}
+          {(formData.employmentType === 'contract-based' || formData.employmentType === 'contract') && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Contract Duration *
+                </label>
+                <select
+                  value={formData.contractDuration}
+                  onChange={(e) => handleChange('contractDuration', e.target.value)}
+                  className="input-field"
+                >
+                  <option value="">Select Duration</option>
+                  <option value="3-months">3 Months</option>
+                  <option value="6-months">6 Months</option>
+                  <option value="12-months">12 Months</option>
+                  <option value="24-months">24 Months</option>
+                  <option value="project-based">Project Based</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Total Contract Amount (USD)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.salary.min}
+                  onChange={(e) => handleChange('salary', { ...formData.salary, min: e.target.value })}
+                  className="input-field"
+                  placeholder="e.g. 50000"
+                />
+              </div>
+            </div>
+          )}
+
+          {formData.employmentType === 'hourly-based' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Hourly Rate (USD) *
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.hourlyRate}
+                  onChange={(e) => handleChange('hourlyRate', e.target.value)}
+                  className="input-field"
+                  placeholder="e.g. 25.50"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Expected Work Hours/Week
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={formData.workHours}
+                  onChange={(e) => handleChange('workHours', e.target.value)}
+                  className="input-field"
+                  placeholder="e.g. 40"
+                />
+              </div>
+            </div>
+          )}
+
+          {formData.employmentType === 'deliverable-based' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Deliverables *
+              </label>
+              {formData.deliverables.map((deliverable, index) => (
+                <div key={index} className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={deliverable}
+                    onChange={(e) => handleArrayFieldChange('deliverables', index, e.target.value)}
+                    className="input-field flex-1"
+                    placeholder="e.g. Complete UI design for mobile app"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeArrayField('deliverables', index)}
+                    className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                    disabled={formData.deliverables.length === 1}
+                  >
+                    <Minus size={20} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => addArrayField('deliverables')}
+                className="flex items-center space-x-2 text-primary-500 hover:text-primary-400 transition-colors"
+              >
+                <Plus size={16} />
+                <span>Add Deliverable</span>
+              </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Total Project Amount (USD)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.salary.min}
+                    onChange={(e) => handleChange('salary', { ...formData.salary, min: e.target.value })}
+                    className="input-field"
+                    placeholder="e.g. 15000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Project Timeline
+                  </label>
+                  <select
+                    value={formData.contractDuration}
+                    onChange={(e) => handleChange('contractDuration', e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="">Select Timeline</option>
+                    <option value="1-month">1 Month</option>
+                    <option value="3-months">3 Months</option>
+                    <option value="6-months">6 Months</option>
+                    <option value="custom">Custom Timeline</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {formData.employmentType === 'rate-based' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Rate Amount (USD) *
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.rateAmount}
+                  onChange={(e) => handleChange('rateAmount', e.target.value)}
+                  className="input-field"
+                  placeholder="e.g. 1000"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Rate Period *
+                </label>
+                <select
+                  value={formData.ratePeriod}
+                  onChange={(e) => handleChange('ratePeriod', e.target.value)}
+                  className="input-field"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="per-project">Per Project</option>
+                </select>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>

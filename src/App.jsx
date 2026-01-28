@@ -47,6 +47,13 @@ import BulkEmployeeUpload from './pages/Employee/BulkEmployeeUpload';
 import ResumeSearch from './pages/HRDashboard/ResumeSearch';
 import ResumeParser from './pages/HRDashboard/ResumeParser';
 import HRCandidatePool from './pages/HRDashboard/HRCandidatePool';
+import DocumentVerification from './pages/HR/DocumentVerification';
+
+// Contract Management Pages
+import ContractDashboard from './pages/Contracts/ContractDashboard';
+import ContractList from './pages/Contracts/ContractList';
+import ContractCreate from './pages/Contracts/ContractCreate';
+import ContractDetail from './pages/Contracts/ContractDetail';
 
 function App() {
   return (
@@ -125,6 +132,7 @@ function App() {
             <Route path="hr/candidate-pool" element={<HRCandidatePool />} />
             <Route path="hr/resume-search" element={<ResumeSearch />} />
             <Route path="hr/resume-parser" element={<ResumeParser />} />
+            <Route path="hr/document-verification" element={<DocumentVerification />} />
           </Route>
 
           <Route
@@ -165,6 +173,28 @@ function App() {
             <Route path=":id" element={<EmployeeDetail />} />
             <Route path="onboarding" element={<Onboarding />} />
             <Route path="offboarding" element={<Offboarding />} />
+          </Route>
+
+          {/* Contract Management Routes */}
+          <Route
+            path="/contracts/*"
+            element={
+              <ProtectedRoute roles={['hr', 'admin', 'company_admin']}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<ContractList />} />
+            <Route
+              path="dashboard"
+              element={
+                <ProtectedRoute roles={['admin', 'company_admin']}>
+                  <ContractDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="create" element={<ContractCreate />} />
+            <Route path=":id" element={<ContractDetail />} />
           </Route>
           </Routes>
           </Router>

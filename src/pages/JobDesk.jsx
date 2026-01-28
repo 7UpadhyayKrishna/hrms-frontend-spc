@@ -238,7 +238,7 @@ const JobDesk = () => {
               </div>
               <div className="flex items-center text-sm text-gray-400">
                 <span className="font-medium text-gray-300 w-24">Type:</span>
-                <span className="capitalize">{job.employmentType}</span>
+                <span className="capitalize">{job.employmentType?.replace('-', ' ')}</span>
               </div>
               <div className="flex items-center text-sm text-gray-400">
                 <span className="font-medium text-gray-300 w-24">Experience:</span>
@@ -252,6 +252,51 @@ const JobDesk = () => {
                 <span className="font-medium text-gray-300 w-24">Applications:</span>
                 <span>{job.applications}</span>
               </div>
+              
+              {/* Employment Type Specific Information */}
+              {(job.employmentType === 'contract-based' || job.employmentType === 'contract') && (
+                <div className="flex items-center text-sm text-gray-400">
+                  <span className="font-medium text-gray-300 w-24">Duration:</span>
+                  <span>{job.contractDuration || 'Not specified'}</span>
+                </div>
+              )}
+              
+              {job.employmentType === 'hourly-based' && (
+                <>
+                  <div className="flex items-center text-sm text-gray-400">
+                    <span className="font-medium text-gray-300 w-24">Hourly Rate:</span>
+                    <span>${job.hourlyRate || 'Not specified'}/hr</span>
+                  </div>
+                  {job.workHours && (
+                    <div className="flex items-center text-sm text-gray-400">
+                      <span className="font-medium text-gray-300 w-24">Hours/Week:</span>
+                      <span>{job.workHours}</span>
+                    </div>
+                  )}
+                </>
+              )}
+              
+              {job.employmentType === 'deliverable-based' && (
+                <>
+                  <div className="flex items-center text-sm text-gray-400">
+                    <span className="font-medium text-gray-300 w-24">Deliverables:</span>
+                    <span>{job.deliverables?.length || 0} items</span>
+                  </div>
+                  {job.contractDuration && (
+                    <div className="flex items-center text-sm text-gray-400">
+                      <span className="font-medium text-gray-300 w-24">Timeline:</span>
+                      <span>{job.contractDuration}</span>
+                    </div>
+                  )}
+                </>
+              )}
+              
+              {job.employmentType === 'rate-based' && (
+                <div className="flex items-center text-sm text-gray-400">
+                  <span className="font-medium text-gray-300 w-24">Rate:</span>
+                  <span>${job.rateAmount || 'Not specified'}/{job.ratePeriod || 'period'}</span>
+                </div>
+              )}
             </div>
 
             <div className={location.pathname.includes('/hr/recruitment')

@@ -122,19 +122,21 @@ const DocumentVerification = () => {
     }
   };
 
-  const handleDownload = async (documentId, fileName) => {
+  const handleDownload = async (doc) => {
     try {
-      const blob = await downloadDocument(documentId);
+      // Always use secure download API so it works in all environments
+      const blob = await downloadDocument(doc._id);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = fileName;
+      a.download = doc.originalFileName || doc.documentName || 'document';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       toast.success('Document downloaded');
     } catch (error) {
+      console.error('Download error:', error);
       toast.error('Failed to download document');
     }
   };
@@ -214,30 +216,80 @@ const DocumentVerification = () => {
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-white mb-4">Candidates</h3>
               
-              {/* Search */}
-              <div className="relative mb-3">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search candidates..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="input pl-10 w-full"
-                />
-              </div>
+              <div className="space-y-4">
+                {/* Search Bar */}
+                <div>
+                  <label htmlFor="candidate-search" className="block text-sm font-medium text-gray-300 mb-2">
+                    <Search className="inline w-4 h-4 mr-1 mb-0.5" />
+                    Search Candidates
+                  </label>
+                  <div className="relative group">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary-400 transition-colors" />
+                    <input
+                      id="candidate-search"
+                      type="text"
+                      placeholder="Search by name, email, or candidate ID..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="input pl-12 w-full bg-dark-800/50 border border-dark-600/60 rounded-xl focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:bg-dark-800 transition-all duration-200 placeholder:text-gray-500"
+                    />
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-dark-700 text-gray-400 hover:text-gray-200 transition-colors"
+                        aria-label="Clear search"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
 
-              {/* Filter */}
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="input w-full"
-              >
-                <option value="">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="verified">Verified</option>
-                <option value="unverified">Rejected</option>
-                <option value="resubmitted">Resubmitted</option>
-              </select>
+                {/* Status Filter */}
+                <div>
+                  <label htmlFor="status-filter" className="block text-sm font-medium text-gray-300 mb-2">
+                    <Filter className="inline w-4 h-4 mr-1 mb-0.5" />
+                    Filter by Status
+                  </label>
+                  <div className="relative group">
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary-400 transition-colors pointer-events-none" />
+                    <select
+                      id="status-filter"
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      className="input pl-12 pr-10 w-full bg-dark-800/50 border border-dark-600/60 rounded-xl focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:bg-dark-800 transition-all duration-200 appearance-none cursor-pointer"
+                    >
+                      <option value="">All Status</option>
+                      <option value="pending">🕐 Pending Review</option>
+                      <option value="verified">✅ Verified</option>
+                      <option value="unverified">❌ Rejected</option>
+                      <option value="resubmitted">🔄 Resubmitted</option>
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Stats */}
+                <div className="bg-dark-800/30 rounded-lg p-3 border border-dark-700/50">
+                  <p className="text-xs text-gray-400 mb-2">Quick Stats</p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                      <span className="w-2 h-2 bg-yellow-400 rounded-full mr-1.5"></span>
+                      {candidates.filter(c => c.documentStats?.pending > 0).length} with pending
+                    </span>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                      <span className="w-2 h-2 bg-green-400 rounded-full mr-1.5"></span>
+                      {candidates.filter(c => c.documentStats?.verified === c.documentStats?.total).length} fully verified
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2 max-h-[600px] overflow-y-auto">
@@ -296,7 +348,7 @@ const DocumentVerification = () => {
 
                 <div className="space-y-4">
                   {documents.map((doc) => (
-                    <div key={doc._id} className="bg-dark-800 rounded-lg p-4">
+                    <div key={doc._id} className="bg-dark-800/50 rounded-xl p-4 border border-dark-700/50">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3 flex-1">
                           <input
@@ -309,13 +361,13 @@ const DocumentVerification = () => {
                                 setSelectedDocs(selectedDocs.filter(id => id !== doc._id));
                               }
                             }}
-                            className="mt-1"
+                            className="mt-1 w-4 h-4 text-primary-500 bg-dark-700 border-dark-600 rounded focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                           />
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-3 mb-2">
                               <FileText className="w-5 h-5 text-gray-400" />
                               <h4 className="font-medium text-white">{doc.documentName}</h4>
-                              <span className={`px-2 py-0.5 rounded text-xs ${getStatusBadge(doc.verificationStatus)}`}>
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(doc.verificationStatus)}`}>
                                 {doc.verificationStatus}
                               </span>
                             </div>
@@ -324,7 +376,7 @@ const DocumentVerification = () => {
                               Uploaded: {new Date(doc.uploadedAt).toLocaleString()}
                             </p>
                             {doc.unverificationReason && (
-                              <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded">
+                              <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                                 <p className="text-sm text-red-400">
                                   <strong>Rejection Reason:</strong> {doc.unverificationReason}
                                 </p>
@@ -335,19 +387,19 @@ const DocumentVerification = () => {
 
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => handleDownload(doc._id, doc.originalFileName)}
-                            className="p-2 hover:bg-dark-700 rounded-lg transition-colors"
+                            onClick={() => handleDownload(doc)}
+                            className="p-2.5 bg-dark-700/50 hover:bg-dark-700 rounded-lg transition-all duration-200 group"
                             title="Download"
                           >
-                            <Download className="w-4 h-4 text-gray-400" />
+                            <Download className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
                           </button>
                           {doc.verificationStatus !== 'verified' && (
                             <button
                               onClick={() => handleVerify(doc._id)}
-                              className="p-2 hover:bg-green-500/10 rounded-lg transition-colors"
+                              className="p-2.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 hover:border-green-500/30 rounded-lg transition-all duration-200 group"
                               title="Verify"
                             >
-                              <CheckCircle className="w-4 h-4 text-green-500" />
+                              <CheckCircle className="w-4 h-4 text-green-400 group-hover:text-green-300 transition-colors" />
                             </button>
                           )}
                           {doc.verificationStatus !== 'unverified' && (
@@ -356,10 +408,10 @@ const DocumentVerification = () => {
                                 setRejectingDoc(doc);
                                 setShowRejectModal(true);
                               }}
-                              className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                              className="p-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/30 rounded-lg transition-all duration-200 group"
                               title="Reject"
                             >
-                              <XCircle className="w-4 h-4 text-red-500" />
+                              <XCircle className="w-4 h-4 text-red-400 group-hover:text-red-300 transition-colors" />
                             </button>
                           )}
                         </div>
@@ -386,17 +438,22 @@ const DocumentVerification = () => {
 
       {/* Reject Modal */}
       {showRejectModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-dark-900 rounded-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Reject Document</h3>
-            <p className="text-gray-400 mb-4">
-              Please provide a reason for rejecting <strong>{rejectingDoc?.documentName}</strong>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-dark-900 border border-dark-700 rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-500/10 rounded-lg">
+                <XCircle className="w-5 h-5 text-red-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">Reject Document</h3>
+            </div>
+            <p className="text-gray-300 mb-4">
+              Please provide a reason for rejecting <span className="font-medium text-white">{rejectingDoc?.documentName}</span>
             </p>
             <textarea
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               placeholder="Enter rejection reason..."
-              className="input w-full h-32 mb-4"
+              className="input w-full h-32 mb-4 bg-dark-800/50 border border-dark-600/60 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 resize-none"
               required
             />
             <div className="flex gap-3">
@@ -412,7 +469,7 @@ const DocumentVerification = () => {
               </button>
               <button
                 onClick={handleUnverify}
-                className="btn-danger flex-1"
+                className="btn-danger flex-1 bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200"
               >
                 Reject & Send Email
               </button>
