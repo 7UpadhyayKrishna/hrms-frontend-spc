@@ -55,6 +55,20 @@ import ContractList from './pages/Contracts/ContractList';
 import ContractCreate from './pages/Contracts/ContractCreate';
 import ContractDetail from './pages/Contracts/ContractDetail';
 
+// Manager Pages
+import ManagerHome from './pages/ManagerDashboard/SPCManagerHome';
+import ManagerLeaveApprovals from './pages/ManagerDashboard/LeaveApprovals';
+import ManagerAssignProject from './pages/ManagerDashboard/AssignProject';
+import ManagerScheduleMeeting from './pages/ManagerDashboard/ScheduleMeeting';
+import ManagerAnnouncements from './pages/ManagerDashboard/Announcements';
+import ManagerTeamReports from './pages/ManagerDashboard/TeamReports';
+
+// Admin Additional Pages
+import AdminScheduleMeeting from './pages/Admin/ScheduleMeeting';
+import AdminAnnouncements from './pages/Admin/Announcements';
+import AdminTeamReports from './pages/Admin/TeamReports';
+import AdminEmailConfig from './pages/Admin/EmailConfig';
+
 function App() {
   return (
     <ThemeProvider>
@@ -117,6 +131,27 @@ function App() {
             <Route path="hr-management" element={<HRManagement />} />
             <Route path="hr-activity-history" element={<HRActivityHistory />} />
             <Route path="approvals/pending" element={<PendingApprovals />} />
+            <Route path="schedule-meeting" element={<AdminScheduleMeeting />} />
+            <Route path="announcements" element={<AdminAnnouncements />} />
+            <Route path="team-reports" element={<AdminTeamReports />} />
+            <Route path="email-config" element={<AdminEmailConfig />} />
+          </Route>
+
+          {/* Manager Routes */}
+          <Route
+            path="/manager/*"
+            element={
+              <ProtectedRoute roles={['manager']}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="dashboard" element={<ManagerHome />} />
+            <Route path="leave-approvals" element={<ManagerLeaveApprovals />} />
+            <Route path="assign-project" element={<ManagerAssignProject />} />
+            <Route path="schedule-meeting" element={<ManagerScheduleMeeting />} />
+            <Route path="announcements" element={<ManagerAnnouncements />} />
+            <Route path="team-reports" element={<ManagerTeamReports />} />
           </Route>
 
           {/* HR Routes */}

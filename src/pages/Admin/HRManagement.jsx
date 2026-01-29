@@ -26,9 +26,9 @@ const HRManagement = () => {
 
       // Check if response has data
       if (response.data && response.data.data) {
-        // Filter to show only HR and admin users for management
+        // Filter to show only HR, admin, and manager users for management
         const hrAndAdminUsers = response.data.data.filter(user =>
-          user.role === 'hr' || user.role === 'admin' || user.role === 'company_admin'
+          user.role === 'hr' || user.role === 'admin' || user.role === 'company_admin' || user.role === 'manager'
         );
         setHrUsers(hrAndAdminUsers);
       } else {
@@ -81,8 +81,9 @@ const HRManagement = () => {
   const getRoleBadge = (role) => {
     const roleConfig = {
       'hr': { label: 'HR', bgColor: 'bg-blue-500/10', textColor: 'text-blue-400', borderColor: 'border-blue-500/30', icon: Users },
+      'manager': { label: 'Manager', bgColor: 'bg-green-500/10', textColor: 'text-green-400', borderColor: 'border-green-500/30', icon: Shield },
       'admin': { label: 'Admin', bgColor: 'bg-purple-500/10', textColor: 'text-purple-400', borderColor: 'border-purple-500/30', icon: Shield },
-      'company_admin': { label: 'Company Admin', bgColor: 'bg-green-500/10', textColor: 'text-green-400', borderColor: 'border-green-500/30', icon: Shield }
+      'company_admin': { label: 'Company Admin', bgColor: 'bg-orange-500/10', textColor: 'text-orange-400', borderColor: 'border-orange-500/30', icon: Shield }
     };
 
     const config = roleConfig[role] || roleConfig['hr'];
@@ -105,7 +106,7 @@ const HRManagement = () => {
             <Users className="w-8 h-8 text-[#A88BFF]" />
             HR Management
           </h1>
-          <p className="text-gray-400 mt-1">Manage HR users and administrators</p>
+          <p className="text-gray-400 mt-1">Manage HR users, managers, and administrators</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -628,6 +629,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
               }`}
             >
               <option value="hr" className="bg-[#1E1E2A]">HR</option>
+              <option value="manager" className="bg-[#1E1E2A]">Manager</option>
               <option value="admin" className="bg-[#1E1E2A]">Admin</option>
               <option value="employee" className="bg-[#1E1E2A]">Employee</option>
             </select>
