@@ -1015,7 +1015,6 @@ const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, o
                   type="date"
                   value={joiningDateInput}
                   onChange={(e) => setJoiningDateInput(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
                   className="w-full px-4 py-2 bg-[#2A2A3A] border border-dark-700 rounded-lg text-white focus:border-primary-600 focus:outline-none"
                 />
               </div>

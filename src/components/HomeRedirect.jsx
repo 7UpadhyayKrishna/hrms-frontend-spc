@@ -18,6 +18,10 @@ const HomeRedirect = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
+  if (user.role === 'manager') {
+    return <Navigate to="/manager/dashboard" replace />;
+  }
+
   return <Navigate to="/unauthorized" replace />;
 };
 

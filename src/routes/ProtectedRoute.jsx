@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children, roles = [] }) => {
   const { isAuthenticated, user, loading } = useAuth();
-  const allowedRoles = ['hr', 'admin', 'company_admin'];
+  const allowedRoles = ['hr', 'admin', 'company_admin', 'manager'];
 
   if (loading) {
     return (
