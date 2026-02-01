@@ -125,6 +125,14 @@ export const downloadDocument = async (documentId) => {
 };
 
 /**
+ * Get document view URL (for preview)
+ */
+export const getDocumentViewUrl = async (documentId) => {
+  const response = await api.get(`/document-verification/documents/${documentId}/view-url`);
+  return response.data;
+};
+
+/**
  * Get verification statistics
  */
 export const getVerificationStats = async () => {
