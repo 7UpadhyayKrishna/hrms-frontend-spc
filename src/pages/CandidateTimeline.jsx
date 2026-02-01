@@ -24,6 +24,7 @@ const CandidateTimeline = () => {
   const [selectedInterview, setSelectedInterview] = useState(null);
   const [sendingNotification, setSendingNotification] = useState(false);
   const [skippedStages, setSkippedStages] = useState(new Set()); // Track manually skipped stages
+  const [processingOnboarding, setProcessingOnboarding] = useState(false);
 
   useEffect(() => {
     fetchCandidateData();
@@ -80,6 +81,66 @@ const CandidateTimeline = () => {
       toast.error(error.response?.data?.message || 'Failed to send notification');
     } finally {
       setSendingNotification(false);
+    }
+  };
+
+  // Shared helper to prepare and send candidate to onboarding
+  const triggerOnboarding = async ({
+    confirmMessage,
+    notes,
+    skipStageName
+  } = {}) => {
+    if (processingOnboarding) {
+      return;
+    }
+
+    if (confirmMessage && !window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      setProcessingOnboarding(true);
+
+      if (!candidate) {
+        throw new Error('Candidate data not loaded');
+      }
+
+      const validStages = ['offer-accepted', 'interview-completed', 'offer-extended', 'shortlisted'];
+      const fallbackStage = 'offer-accepted';
+
+      // If we need to record a skipped stage, move candidate to fallback stage while logging skip
+      if (skipStageName) {
+        await api.post(`/candidates/${candidateId}/move-to-stage`, {
+          targetStage: fallbackStage,
+          skipIntermediate: true,
+          reason: notes || `Skipped ${skipStageName} stage to move candidate to onboarding`,
+          skippedStage: skipStageName
+        });
+
+        setSkippedStages(prev => new Set([...prev, skipStageName]));
+      }
+
+      // Ensure candidate is in a valid stage before sending to onboarding
+      const currentStage = skipStageName ? fallbackStage : candidate.stage;
+      if (!validStages.includes(currentStage)) {
+        await api.post(`/candidates/${candidateId}/move-to-stage`, {
+          targetStage: fallbackStage,
+          skipIntermediate: true,
+          reason: 'Auto-stage change to prepare candidate for onboarding'
+        });
+      }
+
+      await api.post(`/candidates/${candidateId}/send-to-onboarding`, {
+        notes: notes || 'Candidate sent to onboarding from candidate timeline'
+      });
+
+      toast.success('Candidate moved to onboarding');
+      await fetchCandidateData();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to move candidate to onboarding');
+      console.error('Onboarding trigger error:', error);
+    } finally {
+      setProcessingOnboarding(false);
     }
   };
 
@@ -589,28 +650,13 @@ const CandidateTimeline = () => {
                 )}
                 {!isStageSkipped('HR Call') && (
                   <button
-                    onClick={async () => {
-                      if (!window.confirm('Skip HR Call stage and move to Onboarding? This will make this stage inaccessible.')) {
-                        return;
-                      }
-                      try {
-                        await api.post(`/candidates/${candidateId}/move-to-stage`, {
-                          targetStage: 'sent-to-onboarding',
-                          skipIntermediate: true,
-                          reason: 'Skipped HR Call stage',
-                          skippedStage: 'HR Call'
-                        });
-
-                        // Mark this specific stage as skipped immediately
-                        setSkippedStages(prev => new Set([...prev, 'HR Call']));
-
-                        toast.success('HR Call skipped - candidate moved to onboarding');
-                        fetchCandidateData();
-                      } catch (error) {
-                        toast.error(error.response?.data?.message || 'Failed to skip stage');
-                      }
-                    }}
-                    className="btn-outline btn-sm mt-2"
+                    onClick={() => triggerOnboarding({
+                      confirmMessage: 'Skip HR Call stage and move to Onboarding? This will make this stage inaccessible.',
+                      notes: 'Skipped HR Call stage - moved candidate to onboarding',
+                      skipStageName: 'HR Call'
+                    })}
+                    disabled={processingOnboarding}
+                    className="btn-outline btn-sm mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <SkipForward size={16} className="mr-2" />
                     Skip This Stage
@@ -634,28 +680,15 @@ const CandidateTimeline = () => {
               )}
               {candidate.stage !== 'joined' && candidate.status !== 'rejected' && (
                 <button
-                  onClick={async () => {
-                    if (!window.confirm('Move candidate directly to onboarding?')) {
-                      return;
-                    }
-                    try {
-                      await api.post(`/candidates/${candidateId}/move-to-stage`, {
-                        directToOnboarding: true,
-                        skipIntermediate: true,
-                        skipStageValidation: true,
-                        forceMove: true,
-                        reason: 'Direct move to onboarding from any stage'
-                      });
-                      toast.success('Candidate moved to onboarding');
-                      fetchCandidateData();
-                    } catch (error) {
-                      toast.error(error.response?.data?.message || 'Failed to move to onboarding');
-                    }
-                  }}
-                  className="btn-success btn-sm"
+                  onClick={() => triggerOnboarding({
+                    confirmMessage: 'Move candidate directly to onboarding?',
+                    notes: 'Direct move to onboarding from candidate timeline'
+                  })}
+                  disabled={processingOnboarding}
+                  className="btn-success btn-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <UserPlus size={16} className="mr-2" />
-                  Move to Onboarding
+                  {processingOnboarding ? 'Processing...' : 'Move to Onboarding'}
                 </button>
               )}
             </TimelineStep>
