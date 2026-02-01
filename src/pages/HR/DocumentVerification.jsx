@@ -7,7 +7,8 @@ import {
   unverifyDocument,
   bulkVerifyDocuments,
   downloadDocument,
-  getVerificationStats
+  getVerificationStats,
+  getDocumentViewUrl
 } from '../../api/documentUpload';
 import toast from 'react-hot-toast';
 
@@ -122,7 +123,20 @@ const DocumentVerification = () => {
     }
   };
 
-  const handleDownload = async (doc) => {
+  const handleView = async (doc) => {
+  try {
+    const response = await getDocumentViewUrl(doc._id);
+    if (response.success) {
+      // Open the view URL in a new tab
+      window.open(response.data.viewUrl, '_blank');
+    }
+  } catch (error) {
+    console.error('View error:', error);
+    toast.error('Failed to view document');
+  }
+};
+
+const handleDownload = async (doc) => {
     try {
       // Always use secure download API so it works in all environments
       const blob = await downloadDocument(doc._id);
@@ -386,6 +400,13 @@ const DocumentVerification = () => {
                         </div>
 
                         <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleView(doc)}
+                            className="p-2.5 bg-dark-700/50 hover:bg-dark-700 rounded-lg transition-all duration-200 group"
+                            title="View"
+                          >
+                            <Eye className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
+                          </button>
                           <button
                             onClick={() => handleDownload(doc)}
                             className="p-2.5 bg-dark-700/50 hover:bg-dark-700 rounded-lg transition-all duration-200 group"
