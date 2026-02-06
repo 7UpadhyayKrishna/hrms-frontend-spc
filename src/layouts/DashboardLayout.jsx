@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 
-const DashboardLayout = () => {
+const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const toggleSidebar = () => {
@@ -18,6 +18,7 @@ const DashboardLayout = () => {
         <Header toggleSidebar={toggleSidebar} />
         
         <main className="p-6">
+          {children}
           <Outlet />
         </main>
       </div>

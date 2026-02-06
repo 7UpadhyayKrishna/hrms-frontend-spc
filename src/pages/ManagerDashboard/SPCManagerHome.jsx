@@ -77,26 +77,52 @@ const SPCManagerHome = () => {
 
   const upcomingMeetings = [];
 
+  // Add error boundary logging
+  useEffect(() => {
+    const handleError = (event) => {
+      console.error('🚨 Component Error:', event.error);
+      console.error('🚨 Error Stack:', event.error.stack);
+    };
+    
+    window.addEventListener('error', handleError);
+    
+    return () => {
+      window.removeEventListener('error', handleError);
+    };
+  }, []);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 SPCManagerHome - Component mounted');
+    console.log('🔍 Initial state:', { loading, teamStats, projects });
+  }, []);
+
   const fetchProjects = async () => {
     try {
-      const response = await api.get('/spc-manager/projects');
+      console.log('📊 Fetching projects from /manager/projects...');
+      const response = await api.get('/manager/projects');
+      console.log('📊 Projects response:', response.data);
+      
       if (response.data.success) {
+        console.log('✅ Projects set:', response.data.data);
         setProjects(response.data.data);
       } else {
-        toast.error(response.data.message || 'Failed to load SPC projects');
+        console.log('❌ Projects failed:', response.data.message);
+        toast.error(response.data.message || 'Failed to load projects');
       }
     } catch (error) {
-      console.error('Error fetching SPC projects:', error);
-      toast.error('Failed to load SPC projects');
+      console.error('❌ Error fetching projects:', error);
+      console.error('❌ Error details:', error.response?.data || error.message);
+      toast.error('Failed to load projects');
     }
   };
 
   const handleProgressUpdate = async (projectId, payload) => {
     try {
-      const response = await api.put(`/spc-manager/projects/${projectId}/progress`, payload);
+      const response = await api.put(`/manager/projects/${projectId}/progress`, payload);
       
       if (response.data.success) {
-        toast.success('SPC Project progress updated');
+        toast.success('Project progress updated');
         await fetchProjects();
         setProjectDetails(prev => {
           if (!prev || prev._id !== projectId) return prev;
@@ -112,8 +138,8 @@ const SPCManagerHome = () => {
       toast.error(response.data.message || 'Failed to update progress');
       return false;
     } catch (error) {
-      console.error('Error updating SPC project progress:', error);
-      toast.error('Failed to update SPC project progress');
+      console.error('Error updating project progress:', error);
+      toast.error('Failed to update project progress');
       return false;
     }
   };
@@ -121,18 +147,28 @@ const SPCManagerHome = () => {
   // Fetch data from API
   useEffect(() => {
     const fetchData = async () => {
+      console.log('🔍 SPCManagerHome - Starting data fetch...');
       try {
         // Fetch team stats
-        const statsResponse = await api.get('/spc-manager/team-stats');
+        console.log('📊 Fetching team stats...');
+        const statsResponse = await api.get('/manager/team-stats');
+        console.log('📊 Team stats response:', statsResponse.data);
+        
         if (statsResponse.data.success) {
+          console.log('✅ Team stats set:', statsResponse.data.data);
           setTeamStats(statsResponse.data.data);
+        } else {
+          console.log('❌ Team stats failed:', statsResponse.data.message);
         }
 
+        console.log('📊 Fetching projects...');
         await fetchProjects();
         
+        console.log('✅ Data fetch completed, setting loading to false');
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching SPC data:', error);
+        console.error('❌ Error fetching data:', error);
+        console.error('❌ Error details:', error.response?.data || error.message);
         setLoading(false);
       }
     };

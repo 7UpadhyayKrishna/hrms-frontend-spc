@@ -18,6 +18,7 @@ import {
   Building,
   History,
   FileText as FileContract,
+  FolderOpen,
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
@@ -60,6 +61,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   };
 
   const hrMenuItems = [
+    {
+      key: 'projects',
+      label: 'Projects',
+      icon: FolderOpen,
+      path: '/spc/hr/dashboard'
+    },
     {
       key: 'jobdesk',
       label: 'Job Desk',
@@ -123,6 +130,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       path: '/dashboard'
     },
     {
+      key: 'projects',
+      label: 'Projects',
+      icon: FolderOpen,
+      path: '/spc/admin'
+    },
+    {
       key: 'candidates',
       label: 'Candidates',
       icon: Users,
@@ -139,6 +152,51 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       label: 'Departments',
       icon: Building,
       path: '/departments'
+    }
+  ];
+
+  const managerMenuItems = [
+    {
+      key: 'dashboard',
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      path: '/manager/dashboard'
+    },
+    {
+      key: 'my-projects',
+      label: 'My Projects',
+      icon: Briefcase,
+      path: '/manager/spc/projects'
+    },
+    {
+      key: 'leave-approvals',
+      label: 'Leave Approvals',
+      icon: ShieldCheck,
+      path: '/manager/leave-approvals'
+    },
+    {
+      key: 'assign-project',
+      label: 'Assign Project',
+      icon: Briefcase,
+      path: '/manager/assign-project'
+    },
+    {
+      key: 'schedule-meeting',
+      label: 'Schedule Meeting',
+      icon: Users,
+      path: '/manager/schedule-meeting'
+    },
+    {
+      key: 'announcements',
+      label: 'Announcements',
+      icon: FileText,
+      path: '/manager/announcements'
+    },
+    {
+      key: 'team-reports',
+      label: 'Team Reports',
+      icon: History,
+      path: '/manager/team-reports'
     }
   ];
 
@@ -184,6 +242,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         ]
       }
     ];
+  } else if (effectiveUser?.role === 'manager') {
+    menuItems = managerMenuItems;
   } else if (isHR) {
     menuItems = hrMenuItems;
   } else if (isAdmin) {
