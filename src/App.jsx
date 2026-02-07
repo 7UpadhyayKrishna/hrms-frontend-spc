@@ -20,6 +20,7 @@ import CareersPage from './pages/Public/CareersPage';
 import CandidateDocuments from './pages/CandidateDocuments';
 import DocumentUpload from './pages/Public/DocumentUpload';
 import Unauthorized from './pages/Unauthorized';
+import DebugAuth from './components/DebugAuth';
 
 // Admin Pages
 import Dashboard from './pages/Dashboard';
@@ -54,6 +55,14 @@ import ContractDashboard from './pages/Contracts/ContractDashboard';
 import ContractList from './pages/Contracts/ContractList';
 import ContractCreate from './pages/Contracts/ContractCreate';
 import ContractDetail from './pages/Contracts/ContractDetail';
+
+// SPC Project Management Pages
+import ProjectDashboard from './components/SPC/ProjectDashboard';
+import ManagerDashboard from './components/SPC/ManagerDashboard';
+import ManagerProjects from './components/SPC/ManagerProjects';
+import HRDashboard from './components/SPC/HRDashboard';
+import EmployeeDashboard from './components/SPC/EmployeeDashboard';
+import SPCProtectedRoute from './components/SPC/SPCProtectedRoute';
 
 // Manager Pages
 import ManagerHome from './pages/ManagerDashboard/SPCManagerHome';
@@ -109,12 +118,25 @@ function App() {
           <Route path="/candidate-documents" element={<CandidateDocuments />} />
           <Route path="/public/upload-documents/:token" element={<DocumentUpload />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/debug" element={<DebugAuth />} />
           
           {/* Block SuperAdmin routes - Not available in SPC demo */}
           <Route path="/super-admin/*" element={<Navigate to="/unauthorized" replace />} />
           
           {/* Root redirect based on role */}
           <Route path="/" element={<HomeRedirect />} />
+
+          {/* HR SPC Routes */}
+          <Route
+            path="/spc/hr/dashboard"
+            element={
+              <SPCProtectedRoute allowedRoles={['hr']} requireProject={false}>
+                <DashboardLayout>
+                  <HRDashboard user={{ email: 'hr@company.com', role: 'hr' }} />
+                </DashboardLayout>
+              </SPCProtectedRoute>
+            }
+          />
 
           {/* Admin Routes */}
           <Route
@@ -135,6 +157,15 @@ function App() {
             <Route path="announcements" element={<AdminAnnouncements />} />
             <Route path="team-reports" element={<AdminTeamReports />} />
             <Route path="email-config" element={<AdminEmailConfig />} />
+            {/* SPC Project Management Routes - Available for both admin and company_admin */}
+            <Route 
+              path="spc/admin" 
+              element={
+                <SPCProtectedRoute allowedRoles={['admin', 'company_admin']} requireProject={false}>
+                  <ProjectDashboard userRole="company_admin" />
+                </SPCProtectedRoute>
+              } 
+            />
           </Route>
 
           {/* Manager Routes */}
@@ -152,6 +183,23 @@ function App() {
             <Route path="schedule-meeting" element={<ManagerScheduleMeeting />} />
             <Route path="announcements" element={<ManagerAnnouncements />} />
             <Route path="team-reports" element={<ManagerTeamReports />} />
+            {/* SPC Project Management Routes */}
+            <Route 
+              path="spc/manager" 
+              element={
+                <SPCProtectedRoute allowedRoles={['manager']} requireProject={true}>
+                  <ManagerDashboard user={undefined} />
+                </SPCProtectedRoute>
+              } 
+            />
+            <Route 
+              path="spc/projects" 
+              element={
+                <SPCProtectedRoute allowedRoles={['manager']} requireProject={false}>
+                  <ManagerProjects />
+                </SPCProtectedRoute>
+              } 
+            />
           </Route>
 
           {/* HR Routes */}
@@ -208,6 +256,25 @@ function App() {
             <Route path=":id" element={<EmployeeDetail />} />
             <Route path="onboarding" element={<Onboarding />} />
             <Route path="offboarding" element={<Offboarding />} />
+          </Route>
+
+          {/* Employee SPC Routes */}
+          <Route
+            path="/employee/*"
+            element={
+              <ProtectedRoute roles={['employee', 'hr', 'admin', 'company_admin']}>
+                <EmployeeDashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route 
+              path="spc/employee" 
+              element={
+                <SPCProtectedRoute allowedRoles={['employee']} requireProject={true}>
+                  <EmployeeDashboard user={undefined} />
+                </SPCProtectedRoute>
+              } 
+            />
           </Route>
 
           {/* Contract Management Routes */}
