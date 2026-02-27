@@ -255,7 +255,7 @@ const JobCreateModal = ({ isOpen, onClose, onJobCreated, onJobUpdated, editingJo
               >
                 <option value="">Select Department</option>
                 {departments.length > 0 ? (
-                  departments.map(dept => (
+                  departments.filter(dept => dept.isActive !== false).map(dept => (
                     <option key={dept._id} value={dept._id}>
                       {dept.name}
                     </option>
@@ -294,7 +294,7 @@ const JobCreateModal = ({ isOpen, onClose, onJobCreated, onJobUpdated, editingJo
               >
                 <option value="full-time">Full Time</option>
                 <option value="part-time">Part Time</option>
-                <option value="contract">Contract</option>
+                <option value="consultant">Consultant</option>
                 <option value="intern">Intern</option>
                 <option value="contract-based">Contract Based</option>
                 <option value="deliverable-based">Deliverable Based</option>

@@ -209,16 +209,47 @@ const Onboarding = () => {
 
   const sendOffer = async (id, offerDetails) => {
     try {
+      // Debug: Log the data being sent
+      console.log('📤 Sending offer data:', offerDetails);
+      
+      // Validate required fields before sending
+      const requiredFields = ['clientName', 'location', 'projectName', 'employmentStartDate', 'contractEndDate', 'monthlySalary'];
+      const missingFields = requiredFields.filter(field => !offerDetails[field] || (typeof offerDetails[field] === 'string' && offerDetails[field].trim() === ''));
+      
+      if (missingFields.length > 0) {
+        console.error('❌ Missing required fields:', missingFields);
+        toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`);
+        return;
+      }
+      
       // Use current origin to ensure correct URL in all environments
       const currentUrl = window.location.origin;
-      await api.post(`/onboarding/${id}/send-offer`, {
+      const response = await api.post(`/onboarding/${id}/send-offer`, {
         ...offerDetails,
         frontendUrl: currentUrl
       });
-      toast.success('Offer sent successfully');
+      
+      console.log('✅ Offer sent successfully:', response.data);
+      
+      // Check for email warnings
+      if (response.data.data.emailWarning) {
+        console.warn('⚠️ Email warning:', response.data.data.emailWarning);
+        toast.success('Offer processed, but email may have failed. Check console for details.');
+      } else {
+        toast.success('Offer sent successfully');
+      }
+      
       fetchList();
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Failed to send offer');
+      console.error('❌ Failed to send offer:', e.response?.data);
+      const errorMessage = e?.response?.data?.message || 'Failed to send offer';
+      
+      // Show more specific error messages
+      if (e?.response?.data?.requiredFields) {
+        toast.error(`Missing required fields: ${e.response.data.requiredFields.join(', ')}`);
+      } else {
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -957,27 +988,6 @@ const OnboardingCard = ({ item, onUpdateStatus, onSendOffer, onSetJoiningDate, o
         </div>
         
         <div className="flex items-center space-x-2">
-          {/* Request Documents button - always visible */}
-          <button
-            onClick={() => onRequestDocuments(item._id)}
-            className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors text-sm flex items-center space-x-1"
-            title="Send document upload link to candidate"
-          >
-            <FileText size={14} />
-            <span>Request Documents</span>
-          </button>
-          
-          {/* Show Send Offer button only if approval is granted */}
-          {item.status === 'preboarding' && isApprovalGranted && canEdit && (
-            <button
-              onClick={() => onOpenSendOfferModal(item)}
-              className="btn-primary text-sm flex items-center space-x-1"
-            >
-              <Mail size={14} />
-              <span>Send Offer</span>
-            </button>
-          )}
-          
           {nextActions.slice(0, 2).map((action, idx) => (
             <button
               key={idx}
@@ -1718,7 +1728,13 @@ const SendOfferModal = ({ candidate, onClose, onSend }) => {
     salary: '',
     templateId: '',
     designation: candidate.position || '',
-    startDate: ''
+    startDate: '',
+    // New fields for manual input
+    clientName: '',
+    location: '',
+    contractEndDate: '',
+    monthlySalary: '',
+    projectName: ''
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -1857,6 +1873,22 @@ Best regards,
     if (!formData.startDate) {
       newErrors.startDate = 'Start date is required';
     }
+    // New field validations
+    if (!formData.clientName.trim()) {
+      newErrors.clientName = 'Client organization is required';
+    }
+    if (!formData.location.trim()) {
+      newErrors.location = 'Work location is required';
+    }
+    if (!formData.contractEndDate) {
+      newErrors.contractEndDate = 'Contract end date is required';
+    }
+    if (!formData.monthlySalary || formData.monthlySalary <= 0) {
+      newErrors.monthlySalary = 'Valid monthly salary is required';
+    }
+    if (!formData.projectName.trim()) {
+      newErrors.projectName = 'Project name is required';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -1867,18 +1899,31 @@ Best regards,
 
     setLoading(true);
     try {
-      await onSend(candidate._id, {
+      const offerData = {
         templateId: formData.templateId,
+        // New form fields as per backend requirements
+        clientName: formData.clientName,
+        location: formData.location,
+        employmentStartDate: formData.startDate,
+        contractEndDate: formData.contractEndDate,
+        monthlySalary: formData.monthlySalary,
+        projectName: formData.projectName,
+        // Keep existing offerDetails for backward compatibility
         offerDetails: {
           designation: formData.designation,
           offeredCTC: parseFloat(formData.salary),
           ctc: parseFloat(formData.salary),
           salary: parseFloat(formData.salary),
-          startDate: formData.startDate
+          startDate: formData.startDate,
+          projectName: formData.projectName
         }
-      });
+      };
+      
+      console.log('📤 Preparing to send offer with data:', offerData);
+      await onSend(candidate._id, offerData);
       onClose();
     } catch (error) {
+      console.error('❌ Error in handleSubmit:', error);
       toast.error('Failed to send offer');
     } finally {
       setLoading(false);
@@ -2031,7 +2076,7 @@ Best regards,
           {/* Start Date */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Proposed Start Date *
+              Employment Start Date *
             </label>
             <input
               type="date"
@@ -2043,6 +2088,106 @@ Best regards,
             {errors.startDate && (
               <p className="text-red-400 text-sm mt-1">{errors.startDate}</p>
             )}
+          </div>
+
+          {/* New Fields Section */}
+          <div className="border-t border-dark-700 pt-4">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <Building className="mr-2" size={18} />
+              Additional Offer Details
+            </h3>
+            
+            {/* Client Organization */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Client Organization *
+              </label>
+              <input
+                type="text"
+                value={formData.clientName}
+                onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+                className={`input-field w-full ${errors.clientName ? 'border-red-500' : ''}`}
+                placeholder="e.g., International Agency, Client Company Name"
+              />
+              {errors.clientName && (
+                <p className="text-red-400 text-sm mt-1">{errors.clientName}</p>
+              )}
+            </div>
+
+            {/* Project Name */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Project Name *
+              </label>
+              <input
+                type="text"
+                value={formData.projectName}
+                onChange={(e) => setFormData({ ...formData, projectName: e.target.value })}
+                className={`input-field w-full ${errors.projectName ? 'border-red-500' : ''}`}
+                placeholder="e.g., Typhoid Fever Surveillance Project"
+              />
+              {errors.projectName && (
+                <p className="text-red-400 text-sm mt-1">{errors.projectName}</p>
+              )}
+            </div>
+
+            {/* Work Location */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Work Location *
+              </label>
+              <input
+                type="text"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                className={`input-field w-full ${errors.location ? 'border-red-500' : ''}`}
+                placeholder="e.g., Mokokchung, Nagaland"
+              />
+              {errors.location && (
+                <p className="text-red-400 text-sm mt-1">{errors.location}</p>
+              )}
+            </div>
+
+            {/* Contract End Date */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Contract End Date *
+              </label>
+              <input
+                type="date"
+                value={formData.contractEndDate}
+                onChange={(e) => setFormData({ ...formData, contractEndDate: e.target.value })}
+                min={formData.startDate || new Date().toISOString().split('T')[0]}
+                className={`input-field w-full ${errors.contractEndDate ? 'border-red-500' : ''}`}
+              />
+              {errors.contractEndDate && (
+                <p className="text-red-400 text-sm mt-1">{errors.contractEndDate}</p>
+              )}
+            </div>
+
+            {/* Monthly Salary */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Monthly Salary (CTC) *
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1000"
+                value={formData.monthlySalary}
+                onChange={(e) => setFormData({ ...formData, monthlySalary: e.target.value })}
+                className={`input-field w-full ${errors.monthlySalary ? 'border-red-500' : ''}`}
+                placeholder="e.g., 40000"
+              />
+              {errors.monthlySalary && (
+                <p className="text-red-400 text-sm mt-1">{errors.monthlySalary}</p>
+              )}
+              {formData.monthlySalary && (
+                <p className="text-gray-400 text-xs mt-1">
+                  Rs. {parseFloat(formData.monthlySalary).toLocaleString('en-IN')}/- per month
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Info Note */}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, Briefcase, DollarSign } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, Briefcase, DollarSign, Edit, User } from 'lucide-react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
 
@@ -14,10 +14,43 @@ const EmployeeDetail = () => {
     fetchEmployee();
   }, [id]);
 
+  // Helper function to safely format salary values
+  const formatSalary = (value, currency = 'USD') => {
+    if (value === null || value === undefined || value === '') {
+      return `${currency} 0`;
+    }
+    
+    // Handle encrypted/hashed looking strings
+    if (typeof value === 'string') {
+      // Check if it looks like an encrypted hash (long string with special chars)
+      if (value.length > 50 && /[:\/]/.test(value)) {
+        console.warn('Detected potentially encrypted salary value:', value);
+        return `${currency} 0`;
+      }
+      
+      // Try to parse as number
+      const numValue = parseFloat(value);
+      if (isNaN(numValue)) {
+        return `${currency} 0`;
+      }
+      value = numValue;
+    }
+    
+    // Handle numbers
+    if (typeof value === 'number') {
+      return `${currency} ${value.toLocaleString()}`;
+    }
+    
+    return `${currency} 0`;
+  };
+
   const fetchEmployee = async () => {
     try {
       const response = await api.get(`/employees/${id}`);
-      setEmployee(response.data.data);
+      const employeeData = response.data.data;
+      console.log('Employee data received:', employeeData);
+      console.log('Salary data:', employeeData.salary);
+      setEmployee(employeeData);
     } catch (error) {
       toast.error('Failed to load employee details');
       navigate('/employees');
@@ -39,19 +72,26 @@ const EmployeeDetail = () => {
   return (
     <div className="min-h-screen bg-[#1E1E2A] space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between gap-4">
         <button
           onClick={() => navigate('/employees')}
           className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
         >
           <ArrowLeft size={20} />
         </button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             Employee Details
           </h1>
           <p className="text-gray-400 mt-1">{employee.employeeCode}</p>
         </div>
+        <button
+          onClick={() => navigate(`/employees/${id}/edit`)}
+          className="px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20 flex items-center space-x-2"
+        >
+          <Edit size={16} />
+          <span>Edit Employee</span>
+        </button>
       </div>
 
       {/* Profile Card */}
@@ -129,7 +169,7 @@ const EmployeeDetail = () => {
             <div>
               <p className="text-sm text-gray-400">Joining Date</p>
               <p className="text-white">
-                {new Date(employee.joiningDate).toLocaleDateString()}
+                {employee.joiningDate ? new Date(employee.joiningDate).toLocaleDateString() : 'N/A'}
               </p>
             </div>
             <div>
@@ -151,20 +191,52 @@ const EmployeeDetail = () => {
           </h3>
           <div className="space-y-3">
             <div>
+              <p className="text-sm text-gray-400">Currency</p>
+              <p className="text-white font-medium">
+                {typeof employee.salary === 'object' && employee.salary !== null 
+                  ? employee.salary.currency || 'USD' 
+                  : 'USD'}
+              </p>
+            </div>
+            <div>
               <p className="text-sm text-gray-400">Basic Salary</p>
-              <p className="text-white">${employee.salary?.basic || 0}</p>
+              <p className="text-white">
+                {typeof employee.salary === 'object' && employee.salary !== null 
+                  ? formatSalary(employee.salary.basic, employee.salary.currency) 
+                  : formatSalary(employee.salary)}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-400">HRA</p>
-              <p className="text-white">${employee.salary?.hra || 0}</p>
+              <p className="text-white">
+                {typeof employee.salary === 'object' && employee.salary !== null 
+                  ? formatSalary(employee.salary.hra, employee.salary.currency) 
+                  : 'N/A'}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-400">Allowances</p>
-              <p className="text-white">${employee.salary?.allowances || 0}</p>
+              <p className="text-white">
+                {typeof employee.salary === 'object' && employee.salary !== null 
+                  ? formatSalary(employee.salary.allowances, employee.salary.currency) 
+                  : 'N/A'}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-400">Deductions</p>
+              <p className="text-white">
+                {typeof employee.salary === 'object' && employee.salary !== null 
+                  ? formatSalary(employee.salary.deductions, employee.salary.currency) 
+                  : 'N/A'}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-400">Total Salary</p>
-              <p className="text-white font-bold text-lg">${employee.salary?.total || 0}</p>
+              <p className="text-white font-bold text-lg">
+                {typeof employee.salary === 'object' && employee.salary !== null 
+                  ? formatSalary(employee.salary.total, employee.salary.currency) 
+                  : formatSalary(employee.salary)}
+              </p>
             </div>
           </div>
         </div>
@@ -189,12 +261,80 @@ const EmployeeDetail = () => {
               <p className="text-white capitalize">{employee.gender || 'N/A'}</p>
             </div>
             <div>
+              <p className="text-sm text-gray-400">Blood Group</p>
+              <p className="text-white">{employee.bloodGroup || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-400">Marital Status</p>
+              <p className="text-white capitalize">{employee.maritalStatus || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-400">Alternate Phone</p>
+              <p className="text-white">{employee.alternatePhone || 'N/A'}</p>
+            </div>
+            <div>
               <p className="text-sm text-gray-400">Address</p>
               <p className="text-white">
-                {employee.address?.street && `${employee.address.street}, `}
-                {employee.address?.city && `${employee.address.city}, `}
-                {employee.address?.state && `${employee.address.state} `}
-                {employee.address?.zipCode}
+                {typeof employee.address === 'object' && employee.address !== null ? (
+                  [
+                    employee.address.street,
+                    employee.address.city,
+                    employee.address.state,
+                    employee.address.zipCode
+                  ].filter(Boolean).join(', ') || 'N/A'
+                ) : (
+                  employee.address || 'N/A'
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bank Details */}
+        <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
+            <DollarSign size={20} />
+            <span>Bank Details</span>
+          </h3>
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm text-gray-400">Account Number</p>
+              <p className="text-white">
+                {typeof employee.bankDetails === 'object' && employee.bankDetails !== null 
+                  ? (employee.bankDetails.accountNumber || 'N/A')
+                  : 'N/A'}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-400">Bank Name</p>
+              <p className="text-white">
+                {typeof employee.bankDetails === 'object' && employee.bankDetails !== null 
+                  ? (employee.bankDetails.bankName || 'N/A')
+                  : 'N/A'}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-400">IFSC Code</p>
+              <p className="text-white">
+                {typeof employee.bankDetails === 'object' && employee.bankDetails !== null 
+                  ? (employee.bankDetails.ifscCode || 'N/A')
+                  : 'N/A'}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-400">Account Holder Name</p>
+              <p className="text-white">
+                {typeof employee.bankDetails === 'object' && employee.bankDetails !== null 
+                  ? (employee.bankDetails.accountHolderName || 'N/A')
+                  : 'N/A'}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-400">Branch</p>
+              <p className="text-white">
+                {typeof employee.bankDetails === 'object' && employee.bankDetails !== null 
+                  ? (employee.bankDetails.branch || 'N/A')
+                  : 'N/A'}
               </p>
             </div>
           </div>
@@ -203,21 +343,33 @@ const EmployeeDetail = () => {
         {/* Emergency Contact */}
         <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
-            <Phone size={20} />
+            <User size={20} />
             <span>Emergency Contact</span>
           </h3>
           <div className="space-y-3">
             <div>
               <p className="text-sm text-gray-400">Name</p>
-              <p className="text-white">{employee.emergencyContact?.name || 'N/A'}</p>
+              <p className="text-white">
+                {typeof employee.emergencyContact === 'object' && employee.emergencyContact !== null 
+                  ? (employee.emergencyContact.name || 'N/A')
+                  : 'N/A'}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-400">Relationship</p>
-              <p className="text-white">{employee.emergencyContact?.relationship || 'N/A'}</p>
+              <p className="text-white">
+                {typeof employee.emergencyContact === 'object' && employee.emergencyContact !== null 
+                  ? (employee.emergencyContact.relationship || 'N/A')
+                  : 'N/A'}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-400">Phone</p>
-              <p className="text-white">{employee.emergencyContact?.phone || 'N/A'}</p>
+              <p className="text-white">
+                {typeof employee.emergencyContact === 'object' && employee.emergencyContact !== null 
+                  ? (employee.emergencyContact.phone || 'N/A')
+                  : (typeof employee.emergencyContact === 'string' ? employee.emergencyContact : 'N/A')}
+              </p>
             </div>
           </div>
         </div>

@@ -9,7 +9,7 @@ const EmployeeAdd = () => {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    employeeCode: '', // Added employeeCode field
+    employeeCode: '', 
     firstName: '',
     lastName: '',
     email: '',
@@ -30,8 +30,9 @@ const EmployeeAdd = () => {
     designation: '',
     joiningDate: '',
     employmentType: 'full-time',
-    status: 'active', // Added status field with default value
+    status: 'active', 
     salary: {
+      currency: 'USD',
       basic: '',
       hra: '',
       allowances: '',
@@ -128,11 +129,16 @@ const EmployeeAdd = () => {
       return;
     }
 
-    // Prepare data for backend (convert salary fields to numbers)
+    // Prepare data for backend (convert salary fields to numbers and handle enum fields)
     const submitData = {
       ...formData,
       ...(formData.employeeCode && formData.employeeCode.trim() ? { employeeCode: formData.employeeCode } : {}),
+      // Handle enum fields - only include if they have valid values
+      ...(formData.gender && formData.gender.trim() ? { gender: formData.gender } : {}),
+      ...(formData.bloodGroup && formData.bloodGroup.trim() ? { bloodGroup: formData.bloodGroup } : {}),
+      ...(formData.maritalStatus && formData.maritalStatus.trim() ? { maritalStatus: formData.maritalStatus } : {}),
       salary: {
+        currency: formData.salary.currency || 'USD',
         basic: parseFloat(formData.salary.basic) || 0,
         hra: parseFloat(formData.salary.hra) || 0,
         allowances: parseFloat(formData.salary.allowances) || 0,
@@ -350,6 +356,76 @@ const EmployeeAdd = () => {
           </div>
         </div>
 
+        {/* Address Information */}
+        <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <span className="w-1 h-6 bg-[#A88BFF] rounded-full"></span>
+            Address Information
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Street Address
+              </label>
+              <input
+                type="text"
+                name="address.street"
+                value={formData.address.street}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                City
+              </label>
+              <input
+                type="text"
+                name="address.city"
+                value={formData.address.city}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                State
+              </label>
+              <input
+                type="text"
+                name="address.state"
+                value={formData.address.state}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                ZIP Code
+              </label>
+              <input
+                type="text"
+                name="address.zipCode"
+                value={formData.address.zipCode}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Country
+              </label>
+              <input
+                type="text"
+                name="address.country"
+                value={formData.address.country}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Employment Details */}
         <div className="bg-[#2A2A3A] rounded-xl border border-gray-800 p-6 shadow-xl">
           <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
@@ -411,11 +487,13 @@ const EmployeeAdd = () => {
                 className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
               >
                 <option value="full-time">Full Time</option>
-                <option value="contract-fixed-deliverable">Contract - Fixed Deliverable</option>
-                <option value="contract-rate-based">Contract - Rate Based</option>
-                <option value="contract-hourly-based">Contract - Hourly Based</option>
-                <option value="contract">Contract</option>
+                <option value="part-time">Part Time</option>
+                <option value="consultant">Consultant</option>
                 <option value="intern">Intern</option>
+                <option value="contract-based">Contract Based</option>
+                <option value="deliverable-based">Deliverable Based</option>
+                <option value="rate-based">Rate Based</option>
+                <option value="hourly-based">Hourly Based</option>
               </select>
             </div>
           </div>
@@ -428,6 +506,53 @@ const EmployeeAdd = () => {
             Salary Details
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Currency
+              </label>
+              <select
+                name="salary.currency"
+                value={formData.salary.currency}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-[#1E1E2A] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#A88BFF] focus:border-transparent transition-all"
+              >
+                <option value="USD">USD - US Dollar</option>
+                <option value="EUR">EUR - Euro</option>
+                <option value="GBP">GBP - British Pound</option>
+                <option value="INR">INR - Indian Rupee</option>
+                <option value="CAD">CAD - Canadian Dollar</option>
+                <option value="AUD">AUD - Australian Dollar</option>
+                <option value="JPY">JPY - Japanese Yen</option>
+                <option value="CNY">CNY - Chinese Yuan</option>
+                <option value="SGD">SGD - Singapore Dollar</option>
+                <option value="AED">AED - UAE Dirham</option>
+                <option value="SAR">SAR - Saudi Riyal</option>
+                <option value="MYR">MYR - Malaysian Ringgit</option>
+                <option value="THB">THB - Thai Baht</option>
+                <option value="PHP">PHP - Philippine Peso</option>
+                <option value="IDR">IDR - Indonesian Rupiah</option>
+                <option value="VND">VND - Vietnamese Dong</option>
+                <option value="HKD">HKD - Hong Kong Dollar</option>
+                <option value="KRW">KRW - South Korean Won</option>
+                <option value="CHF">CHF - Swiss Franc</option>
+                <option value="SEK">SEK - Swedish Krona</option>
+                <option value="NOK">NOK - Norwegian Krone</option>
+                <option value="DKK">DKK - Danish Krone</option>
+                <option value="PLN">PLN - Polish Zloty</option>
+                <option value="CZK">CZK - Czech Koruna</option>
+                <option value="HUF">HUF - Hungarian Forint</option>
+                <option value="RUB">RUB - Russian Ruble</option>
+                <option value="TRY">TRY - Turkish Lira</option>
+                <option value="ZAR">ZAR - South African Rand</option>
+                <option value="BRL">BRL - Brazilian Real</option>
+                <option value="MXN">MXN - Mexican Peso</option>
+                <option value="ARS">ARS - Argentine Peso</option>
+                <option value="CLP">CLP - Chilean Peso</option>
+                <option value="COP">COP - Colombian Peso</option>
+                <option value="PEN">PEN - Peruvian Sol</option>
+                <option value="UYU">UYU - Uruguayan Peso</option>
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Basic Salary

@@ -1,17 +1,41 @@
-import React, { useState } from 'react';
-import { X, Upload, Loader, Briefcase, User, Mail, Phone, MapPin, DollarSign, GraduationCap, Award, BookOpen, Plus, Minus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Upload, Loader, Briefcase, User, Mail, Phone, MapPin, DollarSign, GraduationCap, Award, BookOpen, Plus, Minus, Calendar, Heart } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/axios';
 
 const JobApplicationModal = ({ job, onClose, onSubmit }) => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [employeeData, setEmployeeData] = useState(null);
   const [formData, setFormData] = useState({
+    // Basic Personal Information
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
     alternatePhone: '',
+    dateOfBirth: '',
+    gender: '',
+    bloodGroup: '',
+    maritalStatus: '',
+    // Address Information
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: ''
+    },
     currentLocation: '',
     preferredLocation: [],
+    employmentType: 'full-time',
+    // Emergency Contact
+    emergencyContact: {
+      name: '',
+      relationship: '',
+      phone: ''
+    },
     experience: {
       years: '',
       months: ''
@@ -56,6 +80,51 @@ const JobApplicationModal = ({ job, onClose, onSubmit }) => {
 
   const [skillInput, setSkillInput] = useState('');
   const [locationInput, setLocationInput] = useState('');
+
+  // Fetch employee data if user is logged in as an employee
+  useEffect(() => {
+    const fetchEmployeeData = async () => {
+      if (user && user.role === 'employee' && user.employeeId) {
+        try {
+          const response = await api.get(`/employees/${user.employeeId}`);
+          const employee = response.data.data;
+          setEmployeeData(employee);
+          
+          // Pre-populate form with employee data
+          setFormData(prev => ({
+            ...prev,
+            firstName: employee.firstName || '',
+            lastName: employee.lastName || '',
+            email: employee.email || '',
+            phone: employee.phone || '',
+            alternatePhone: employee.alternatePhone || '',
+            dateOfBirth: employee.dateOfBirth ? new Date(employee.dateOfBirth).toISOString().split('T')[0] : '',
+            gender: employee.gender || '',
+            bloodGroup: employee.bloodGroup || '',
+            maritalStatus: employee.maritalStatus || '',
+            address: employee.address || {
+              street: '',
+              city: '',
+              state: '',
+              zipCode: '',
+              country: ''
+            },
+            emergencyContact: employee.emergencyContact || {
+              name: '',
+              relationship: '',
+              phone: ''
+            },
+            employmentType: employee.employmentType || 'full-time'
+          }));
+        } catch (error) {
+          console.error('Failed to fetch employee data:', error);
+          // Continue with empty form if employee data fetch fails
+        }
+      }
+    };
+
+    fetchEmployeeData();
+  }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -277,8 +346,22 @@ const JobApplicationModal = ({ job, onClose, onSubmit }) => {
       formDataToSubmit.append('email', formData.email);
       formDataToSubmit.append('phone', formData.phone);
       formDataToSubmit.append('alternatePhone', formData.alternatePhone || '');
+      formDataToSubmit.append('dateOfBirth', formData.dateOfBirth || '');
+      // Only append enum fields if they have valid values
+      if (formData.gender && formData.gender.trim()) {
+        formDataToSubmit.append('gender', formData.gender);
+      }
+      if (formData.bloodGroup && formData.bloodGroup.trim()) {
+        formDataToSubmit.append('bloodGroup', formData.bloodGroup);
+      }
+      if (formData.maritalStatus && formData.maritalStatus.trim()) {
+        formDataToSubmit.append('maritalStatus', formData.maritalStatus);
+      }
+      formDataToSubmit.append('address', JSON.stringify(formData.address));
+      formDataToSubmit.append('emergencyContact', JSON.stringify(formData.emergencyContact));
       formDataToSubmit.append('currentLocation', formData.currentLocation || '');
       formDataToSubmit.append('preferredLocation', JSON.stringify(formData.preferredLocation));
+      formDataToSubmit.append('employmentType', formData.employmentType || 'full-time');
       
       // Experience
       formDataToSubmit.append('experience[years]', parseInt(formData.experience.years) || 0);
@@ -364,7 +447,7 @@ const JobApplicationModal = ({ job, onClose, onSubmit }) => {
               <User size={20} className="text-primary-400" />
               <span>Personal Information</span>
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   First Name *
@@ -431,15 +514,218 @@ const JobApplicationModal = ({ job, onClose, onSubmit }) => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Current Location
+                  Date of Birth
                 </label>
                 <input
-                  type="text"
-                  name="currentLocation"
-                  value={formData.currentLocation}
+                  type="date"
+                  name="dateOfBirth"
+                  value={formData.dateOfBirth}
                   onChange={handleChange}
                   className="w-full px-4 py-2 bg-dark-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Gender
+                </label>
+                <select
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 bg-dark-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Blood Group
+                </label>
+                <select
+                  name="bloodGroup"
+                  value={formData.bloodGroup}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 bg-dark-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Select Blood Group</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Marital Status
+                </label>
+                <select
+                  name="maritalStatus"
+                  value={formData.maritalStatus}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 bg-dark-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Select Status</option>
+                  <option value="single">Single</option>
+                  <option value="married">Married</option>
+                  <option value="divorced">Divorced</option>
+                  <option value="widowed">Widowed</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Preferred Employment Type
+                </label>
+                <select
+                  name="employmentType"
+                  value={formData.employmentType}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 bg-dark-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="full-time">Full Time</option>
+                  <option value="part-time">Part Time</option>
+                  <option value="consultant">Consultant</option>
+                  <option value="intern">Intern</option>
+                  <option value="contract-based">Contract Based</option>
+                  <option value="deliverable-based">Deliverable Based</option>
+                  <option value="rate-based">Rate Based</option>
+                  <option value="hourly-based">Hourly Based</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Address Information */}
+            <div className="mt-6">
+              <h4 className="text-md font-medium text-gray-300 mb-3 flex items-center space-x-2">
+                <MapPin size={16} className="text-primary-400" />
+                <span>Address Information</span>
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Street Address
+                  </label>
+                  <input
+                    type="text"
+                    name="address.street"
+                    value={formData.address.street}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 bg-dark-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    name="address.city"
+                    value={formData.address.city}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 bg-dark-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    State
+                  </label>
+                  <input
+                    type="text"
+                    name="address.state"
+                    value={formData.address.state}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 bg-dark-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    ZIP Code
+                  </label>
+                  <input
+                    type="text"
+                    name="address.zipCode"
+                    value={formData.address.zipCode}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 bg-dark-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Country
+                  </label>
+                  <input
+                    type="text"
+                    name="address.country"
+                    value={formData.address.country}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 bg-dark-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Current Location
+                  </label>
+                  <input
+                    type="text"
+                    name="currentLocation"
+                    value={formData.currentLocation}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 bg-dark-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Emergency Contact */}
+            <div className="mt-6">
+              <h4 className="text-md font-medium text-gray-300 mb-3 flex items-center space-x-2">
+                <Heart size={16} className="text-primary-400" />
+                <span>Emergency Contact</span>
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Contact Name
+                  </label>
+                  <input
+                    type="text"
+                    name="emergencyContact.name"
+                    value={formData.emergencyContact.name}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 bg-dark-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Relationship
+                  </label>
+                  <input
+                    type="text"
+                    name="emergencyContact.relationship"
+                    value={formData.emergencyContact.relationship}
+                    onChange={handleChange}
+                    placeholder="e.g., Father, Mother, Spouse"
+                    className="w-full px-4 py-2 bg-dark-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Contact Phone
+                  </label>
+                  <input
+                    type="tel"
+                    name="emergencyContact.phone"
+                    value={formData.emergencyContact.phone}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 bg-dark-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
               </div>
             </div>
 
