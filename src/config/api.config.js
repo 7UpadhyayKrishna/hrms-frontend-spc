@@ -33,21 +33,24 @@ const getCurrentEnvironment = () => {
 // Get API base URL based on environment
 const getApiBaseUrl = (env) => {
   switch (env) {
-    case ENV.DEVELOPMENT:
-      // Temporarily use direct backend URL to bypass proxy issues
-      return 'http://localhost:5001/api';
-      // Original: return '/api'; // This should proxy to http://localhost:5001 via Vite
+    case ENV.DEVELOPMENT: {
+      // Prefer VITE_API_URL; default matches backend PORT=5001
+      const base = (import.meta.env.VITE_API_URL || 'http://localhost:5001').replace(/\/$/, '');
+      return base.endsWith('/api') ? base : `${base}/api`;
+    }
       
-    case ENV.STAGING:
-      // Staging environment - use env variable or staging default
-      return (import.meta.env.VITE_API_URL || 'https://hrms-backend-staging.onrender.com') + '/api';
+    case ENV.STAGING: {
+      const base = (import.meta.env.VITE_API_URL || 'https://hrms-backend-staging.onrender.com').replace(/\/$/, '');
+      return base.endsWith('/api') ? base : `${base}/api`;
+    }
       
     case ENV.PRODUCTION:
-    default:
-      // Production - use relative path for nginx proxy or env variable
-      // When deployed in Docker with nginx, /api requests are proxied to backend
-      // When deployed separately, set VITE_API_URL to full backend URL
-      return import.meta.env.VITE_API_URL || '/api';
+    default: {
+      // Relative /api for nginx proxy, or absolute VITE_API_URL when hosted separately
+      if (!import.meta.env.VITE_API_URL) return '/api';
+      const base = import.meta.env.VITE_API_URL.replace(/\/$/, '');
+      return base.endsWith('/api') ? base : `${base}/api`;
+    }
   }
 };
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, Plus, X, Edit2, Trash2, Send, Calendar, Users, Eye, Bell, Megaphone } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import api from '../../api/axios';
 
 const Announcements = () => {

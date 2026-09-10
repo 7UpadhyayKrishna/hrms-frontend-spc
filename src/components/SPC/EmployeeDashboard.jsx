@@ -2,11 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Table, Tag, Button, Modal, Form, Input, Select, message, Avatar, Progress, Timeline } from 'antd';
 import { UserOutlined, ProjectOutlined, CalendarOutlined, CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
+import { config } from '../../config/api.config';
 
 const { Option } = Select;
 const { TextArea } = Input;
 
-const EmployeeDashboard = ({ user }) => {
+const EmployeeDashboard = ({ user: userProp }) => {
+  const { user: authUser } = useAuth();
+  const user = userProp || authUser;
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -23,13 +27,16 @@ const EmployeeDashboard = ({ user }) => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/spc/dashboard');
+      const response = await axios.get(`${config.apiBaseUrl}/spc/dashboard`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
       
       if (response.data.success) {
-        setProjects(response.data.data.projects);
+        setProjects(response.data.data.projects || []);
       }
     } catch (error) {
-      message.error('Failed to fetch dashboard data');
+      // Empty projects is fine for a newly seeded employee
+      setProjects([]);
     } finally {
       setLoading(false);
     }
@@ -37,37 +44,23 @@ const EmployeeDashboard = ({ user }) => {
 
   const fetchTasks = async () => {
     try {
-      const response = await axios.get('/api/tasks/my-tasks');
+      const response = await axios.get(`${config.apiBaseUrl}/tasks/my-tasks`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
       if (response.data.success) {
         setTasks(response.data.data);
       }
     } catch (error) {
-      // Simulate tasks if API doesn't exist
-      setTasks([
-        {
-          _id: '1',
-          title: 'Complete project documentation',
-          status: 'in-progress',
-          priority: 'high',
-          dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-          project: 'Company Website Redesign'
-        },
-        {
-          _id: '2',
-          title: 'Review design mockups',
-          status: 'pending',
-          priority: 'medium',
-          dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-          project: 'Company Website Redesign'
-        }
-      ]);
+      setTasks([]);
     }
   };
 
   const handleLeaveRequest = async (values) => {
     try {
       setLoading(true);
-      const response = await axios.post('/api/leave-requests', values);
+      const response = await axios.post(`${config.apiBaseUrl}/leave-requests`, values, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
       
       if (response.data.success) {
         message.success('Leave request submitted successfully');
@@ -84,7 +77,9 @@ const EmployeeDashboard = ({ user }) => {
   const handleTimesheetSubmit = async (values) => {
     try {
       setLoading(true);
-      const response = await axios.post('/api/timesheets', values);
+      const response = await axios.post(`${config.apiBaseUrl}/timesheets`, values, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
       
       if (response.data.success) {
         message.success('Timesheet submitted successfully');

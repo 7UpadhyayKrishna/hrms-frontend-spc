@@ -8,7 +8,7 @@ import {
   requestRegularization
 } from '../../api/employeeDashboard';
 import { checkOfficeNetwork, onNetworkChange } from '../../utils/networkUtils';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import {
   Clock,
   LogIn,

@@ -8,7 +8,7 @@ import {
   updateUserRole,
   deactivateUser 
 } from '../../api/superAdmin';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import {
   Users,
   Shield,

@@ -14,7 +14,7 @@ import {
   Info
 } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const LEAVE_TYPES = [
   'Personal Leave',

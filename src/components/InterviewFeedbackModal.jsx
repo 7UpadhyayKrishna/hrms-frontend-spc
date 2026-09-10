@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Star, MessageSquare, CheckCircle, XCircle, Clock, Loader } from 'lucide-react';
 import api from '../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../utils/toast';
 
 const InterviewFeedbackModal = ({ candidateId, interview, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({

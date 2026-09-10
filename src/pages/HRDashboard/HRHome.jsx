@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Calendar, DollarSign, TrendingUp, Clock, Briefcase, Loader2, UserCheck, UserPlus, ClipboardList } from 'lucide-react';
 import { getHRDashboardStats } from '../../api/hr';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const HRHome = () => {
   const navigate = useNavigate();

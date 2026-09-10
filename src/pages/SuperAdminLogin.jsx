@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, Eye, EyeOff, Shield, ArrowLeft } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../utils/toast';
 
 const SuperAdminLogin = () => {
   const navigate = useNavigate();

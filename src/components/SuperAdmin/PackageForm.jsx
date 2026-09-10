@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { X, Package, DollarSign, Users, Settings } from 'lucide-react';
 import { createPackage, updatePackage } from '../../api/superAdmin';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const PackageForm = ({ package: editPackage, onClose, onSuccess }) => {
   const { theme } = useTheme();

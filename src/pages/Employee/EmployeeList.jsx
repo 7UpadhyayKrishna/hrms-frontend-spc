@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Search, Edit, Trash2, Eye, Filter, Upload, Users, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const EmployeeList = () => {
   const [employees, setEmployees] = useState([]);

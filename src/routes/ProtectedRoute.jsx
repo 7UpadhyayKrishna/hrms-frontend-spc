@@ -1,10 +1,10 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const ProtectedRoute = ({ children, roles = [] }) => {
+const ProtectedRoute = ({ children, roles = [], allowPasswordChange = false }) => {
   const { isAuthenticated, user, loading } = useAuth();
-  const allowedRoles = ['hr', 'admin', 'company_admin', 'manager'];
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -21,13 +21,22 @@ const ProtectedRoute = ({ children, roles = [] }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (!allowedRoles.includes(user?.role)) {
-    return <Navigate to="/unauthorized" replace />;
+  const mustChange = !!(user?.mustChangePassword || user?.isFirstLogin);
+  if (mustChange && !allowPasswordChange && location.pathname !== '/change-password') {
+    return <Navigate to="/change-password" replace />;
   }
 
-  // Company admin has FULL ACCESS to all routes - bypass all role restrictions
-  if (user?.role === 'company_admin') {
+  // Company admin / admin has full tenant access
+  if (user?.role === 'company_admin' || user?.role === 'admin') {
     return children;
+  }
+
+  // Super admin only for routes that explicitly allow it
+  if (user?.role === 'superadmin') {
+    if (roles.length === 0 || roles.includes('superadmin')) {
+      return children;
+    }
+    return <Navigate to="/unauthorized" replace />;
   }
 
   if (roles.length > 0 && !roles.includes(user?.role)) {

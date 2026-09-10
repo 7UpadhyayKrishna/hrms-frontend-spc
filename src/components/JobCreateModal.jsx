@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus } from 'lucide-react';
 import api from '../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../utils/toast';
 
 const JobCreateModal = ({ isOpen, onClose, onJobCreated, onJobUpdated, editingJob }) => {
   const [formData, setFormData] = useState({

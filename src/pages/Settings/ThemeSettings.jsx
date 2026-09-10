@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { getThemeList, applyTheme } from '../../config/themes';
 import { Palette, Check, RotateCcw, Sparkles, X } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const ThemeSettings = () => {
   const { theme: currentTheme, setTheme, isChanging } = useTheme();

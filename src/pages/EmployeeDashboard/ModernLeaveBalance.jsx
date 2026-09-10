@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getLeaveBalance, getLeaveApplications } from '../../api/employeeDashboard';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import BottomNavigation from '../../components/BottomNavigation';
 import { ArrowLeft, Calendar, CheckCircle, XCircle, Clock } from 'lucide-react';
 

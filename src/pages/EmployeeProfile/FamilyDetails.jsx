@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Save, X, Users } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const FamilyDetails = () => {
   const [familyDetails, setFamilyDetails] = useState([]);

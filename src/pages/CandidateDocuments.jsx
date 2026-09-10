@@ -37,7 +37,10 @@ const CandidateDocuments = () => {
     try {
       const response = await axios.post(
         `${config.apiBaseUrl}/candidate-documents/public/validate`,
-        { candidateCode: candidateCode.trim() }
+        {
+          candidateCode: candidateCode.trim(),
+          companyId: import.meta.env.VITE_PUBLIC_COMPANY_ID
+        }
       );
 
       if (response.data.success) {
@@ -103,6 +106,7 @@ const CandidateDocuments = () => {
       // Create FormData
       const submitData = new FormData();
       submitData.append('candidateCode', candidateCode);
+      submitData.append('companyId', import.meta.env.VITE_PUBLIC_COMPANY_ID || '');
       submitData.append('aadhar', formData.aadharFile);
       submitData.append('pan', formData.panFile);
       submitData.append('bankProof', formData.bankProofFile);

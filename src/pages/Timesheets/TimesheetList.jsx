@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Clock, Check, X, Loader2, Calendar } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import { useAuth } from '../../context/AuthContext';
 
 const TimesheetList = () => {

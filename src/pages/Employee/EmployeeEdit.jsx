@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, User, Mail, Phone, Calendar, MapPin, Building, Briefcase } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const EmployeeEdit = () => {
   const { id } = useParams();

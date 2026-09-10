@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Briefcase, ArrowLeft } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../utils/toast';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { config } from '../config/api.config';
@@ -10,7 +10,7 @@ const SPC_COMPANY_NAME = 'SPC Management';
 
 const SPCManagementLogin = () => {
   const navigate = useNavigate();
-  const { login, updateUser } = useAuth();
+  const { login } = useAuth();
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [loadingCompany, setLoadingCompany] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -67,17 +67,21 @@ const SPCManagementLogin = () => {
     const result = await login(formData.email, formData.password, selectedCompany?.id);
 
     if (result.success) {
-      const storedUser = JSON.parse(localStorage.getItem('user'));
-      if (storedUser?.role === 'company_admin') {
-        const updatedUser = { ...storedUser, role: 'admin' };
-        updateUser(updatedUser);
-      }
-
       toast.success('Login successful!');
       const userData = JSON.parse(localStorage.getItem('user'));
 
+      if (userData?.mustChangePassword || userData?.isFirstLogin) {
+        navigate('/change-password', { replace: true });
+        setLoading(false);
+        return;
+      }
+
       if (userData?.role === 'hr') {
         navigate('/job-desk');
+      } else if (userData?.role === 'manager') {
+        navigate('/manager/dashboard');
+      } else if (userData?.role === 'employee') {
+        navigate('/employee/dashboard');
       } else {
         navigate('/dashboard');
       }

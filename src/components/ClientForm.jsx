@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { X, Save, Building, Mail, Phone, MapPin, User, CreditCard, Calendar, Clock, Users, Briefcase, FileText } from 'lucide-react';
 import { createClient, updateClient } from '../api/superAdmin';
-import toast from 'react-hot-toast';
+import toast from '../utils/toast';
 
 const ClientForm = ({ client, onClose, onSuccess }) => {
   const { theme } = useTheme();

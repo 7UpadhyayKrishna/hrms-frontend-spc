@@ -20,8 +20,7 @@ import {
   Users,
   Package
 } from 'lucide-react';
-import toast from 'react-hot-toast';
-import DiagnosticPanel from '../../components/DiagnosticPanel';
+import toast from '../../utils/toast';
 import NewSubscriptionModal from '../../components/SuperAdmin/NewSubscriptionModal';
 
 const SubscriptionManagement = () => {
@@ -55,7 +54,6 @@ const SubscriptionManagement = () => {
       // Check if we have authentication token
       const token = localStorage.getItem('token');
       console.log('🔑 Auth token exists:', !!token);
-      console.log('🔑 Token preview:', token ? token.substring(0, 20) + '...' : 'No token');
       
       const params = {
         page: currentPage,
@@ -278,11 +276,6 @@ const SubscriptionManagement = () => {
               New Subscription
             </button>
           </div>
-        </div>
-
-        {/* Diagnostic Panel - Temporary for troubleshooting */}
-        <div className="mb-8">
-          <DiagnosticPanel />
         </div>
 
         {/* Stats Cards */}

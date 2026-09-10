@@ -1,19 +1,24 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
+/** Dev-only auth diagnostics — disabled in production builds. */
 const DebugAuth = () => {
   const { user, isAuthenticated, loading } = useAuth();
-  
+
   useEffect(() => {
-    console.log('🔍 Debug Auth Context:');
-    console.log('  - Loading:', loading);
-    console.log('  - Authenticated:', isAuthenticated);
-    console.log('  - User:', user);
-    console.log('  - User Role:', user?.role);
-    console.log('  - User Email:', user?.email);
-    console.log('  - Token:', localStorage.getItem('token') ? 'Present' : 'Missing');
-    console.log('  - Stored User:', localStorage.getItem('user'));
+    if (!import.meta.env.DEV) return;
+    console.log('🔍 Debug Auth Context:', {
+      loading,
+      isAuthenticated,
+      role: user?.role,
+      email: user?.email,
+      hasToken: !!localStorage.getItem('token')
+    });
   }, [user, isAuthenticated, loading]);
+
+  if (!import.meta.env.DEV) {
+    return null;
+  }
 
   if (loading) {
     return <div>Loading...</div>;

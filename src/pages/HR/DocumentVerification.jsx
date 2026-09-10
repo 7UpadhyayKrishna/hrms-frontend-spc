@@ -10,7 +10,7 @@ import {
   getVerificationStats,
   getDocumentViewUrl
 } from '../../api/documentUpload';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const DocumentVerification = () => {
   const [candidates, setCandidates] = useState([]);

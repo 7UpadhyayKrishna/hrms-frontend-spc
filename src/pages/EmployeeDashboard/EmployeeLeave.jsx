@@ -6,7 +6,7 @@ import {
   applyLeave, 
   cancelLeave 
 } from '../../api/employeeDashboard';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import {
   Calendar,
   Plus,

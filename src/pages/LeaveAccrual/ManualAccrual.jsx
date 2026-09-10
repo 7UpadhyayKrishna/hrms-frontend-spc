@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Play, Calendar, RefreshCw } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const ManualAccrual = () => {
   const [loading, setLoading] = useState(false);

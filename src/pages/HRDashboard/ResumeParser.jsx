@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, FileText, User, Mail, Phone, MapPin, Briefcase, DollarSign, Calendar, Code, Eye, CheckCircle, XCircle } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const ResumeParser = () => {
   const [file, setFile] = useState(null);
@@ -104,7 +104,34 @@ const ResumeParser = () => {
       }
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error(error.response?.data?.message || 'Failed to upload resume');
+      // Still open manual entry so HR is not blocked
+      setParsedData({
+        extractedData: {
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          appliedFor: '',
+          currentLocation: '',
+          preferredLocation: '',
+          source: '',
+          experienceYears: null,
+          experienceMonths: null,
+          currentCompany: '',
+          currentDesignation: '',
+          currentCTC: null,
+          expectedCTC: null,
+          noticePeriod: '',
+          skills: [],
+          stage: null,
+          notes: error.response?.data?.message || 'Upload failed. Enter details manually.',
+        },
+        rawText: '',
+        confidence: {},
+        metadata: { source: 'error-fallback' },
+      });
+      setShowForm(true);
+      toast.error(error.response?.data?.message || 'Automatic parsing failed — enter details manually');
     } finally {
       setUploading(false);
     }

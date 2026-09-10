@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, Eye, EyeOff, Building2, ArrowLeft } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../utils/toast';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
 import { config } from '../config/api.config';
@@ -97,13 +97,21 @@ const CompanyLogin = () => {
       toast.success('Login successful!');
       
       const userData = JSON.parse(localStorage.getItem('user'));
+
+      if (userData?.mustChangePassword || userData?.isFirstLogin) {
+        navigate('/change-password', { replace: true });
+        setLoading(false);
+        return;
+      }
       
       // Role-based redirection for multi-tenant users
-      if (userData?.role === 'employee' || userData?.role === 'manager' || userData?.role === 'hr') {
-        // Employee, Manager, and HR use employee portal
+      if (userData?.role === 'hr') {
+        navigate('/job-desk');
+      } else if (userData?.role === 'manager') {
+        navigate('/manager/dashboard');
+      } else if (userData?.role === 'employee') {
         navigate('/employee/dashboard');
       } else if (userData?.role === 'company_admin' || userData?.role === 'admin') {
-        // Admin use admin dashboard
         navigate('/dashboard');
       } else {
         navigate('/dashboard');
@@ -143,12 +151,18 @@ const CompanyLogin = () => {
   const handleGoogleSuccess = async (credentialResponse) => {
     setLoading(true);
     
-    const result = await googleLogin(credentialResponse.credential, selectedCompany?.databaseName);
+    const result = await googleLogin(credentialResponse.credential, selectedCompany?.id);
     
     if (result.success) {
       toast.success('Login successful!');
       
       const userData = JSON.parse(localStorage.getItem('user'));
+
+      if (userData?.mustChangePassword || userData?.isFirstLogin) {
+        navigate('/change-password', { replace: true });
+        setLoading(false);
+        return;
+      }
       
       if (userData?.role === 'employee') {
         navigate('/employee/dashboard');

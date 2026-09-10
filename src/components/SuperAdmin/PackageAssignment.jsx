@@ -17,7 +17,7 @@ import {
   assignPackageToClient, 
   getClientPackages 
 } from '../../api/superAdmin';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const PackageAssignment = ({ isOpen, onClose }) => {
   const { theme } = useTheme();

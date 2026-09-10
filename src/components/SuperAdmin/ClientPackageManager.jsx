@@ -19,7 +19,7 @@ import {
   updateClientPackage,
   cancelClientPackage 
 } from '../../api/superAdmin';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const ClientPackageManager = ({ clientId, clientName, isOpen, onClose }) => {
   const { theme } = useTheme();

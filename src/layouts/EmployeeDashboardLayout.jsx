@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
+import NotificationDropdown from '../components/NotificationDropdown';
 import {
   Briefcase,
   User,
@@ -17,12 +19,15 @@ import {
 
 const EmployeeDashboardLayout = () => {
   const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false); // Hidden on mobile by default
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const isHR = user?.role === 'hr';
+  const isEmployee = user?.role === 'employee';
 
   // HR Navigation - allowed features
   const hrNavigation = [
@@ -34,7 +39,13 @@ const EmployeeDashboardLayout = () => {
     { name: 'Document Verification', href: '/employee/hr/document-verification', icon: ShieldCheck },
     { name: 'My Profile', href: '/employee/profile', icon: User },
   ];
-  const navigation = isHR ? hrNavigation : [];
+
+  const employeeNavigation = [
+    { name: 'My Dashboard', href: '/employee/dashboard', icon: Briefcase },
+    { name: 'My Profile', href: '/employee/profile', icon: User },
+  ];
+
+  const navigation = isHR ? hrNavigation : isEmployee ? employeeNavigation : employeeNavigation;
 
   const handleLogout = () => {
     logout();
@@ -104,7 +115,7 @@ const EmployeeDashboardLayout = () => {
               <div className="flex items-center">
                 <button
                   onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="p-2 rounded-xl text-gray-400 hover:bg-[#1E1E2A] hover:text-white transition-colors"
+                  className="md:hidden p-2 rounded-xl text-gray-400 hover:bg-[#1E1E2A] hover:text-white transition-colors"
                 >
                   {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                 </button>
@@ -113,15 +124,34 @@ const EmployeeDashboardLayout = () => {
               {/* Right side */}
               <div className="flex items-center space-x-4">
                 {/* Notifications */}
-                <button className="p-2 rounded-xl text-gray-400 hover:bg-[#1E1E2A] hover:text-white transition-colors relative">
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-[#A88BFF] rounded-full"></span>
-                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNotifications((open) => !open);
+                      setProfileMenuOpen(false);
+                    }}
+                    className="p-2 rounded-xl text-gray-400 hover:bg-[#1E1E2A] hover:text-white transition-colors relative"
+                    title="Notifications"
+                  >
+                    <Bell className="w-5 h-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1 right-1 min-w-[0.5rem] h-2 px-0.5 bg-[#A88BFF] rounded-full" />
+                    )}
+                  </button>
+                  <NotificationDropdown
+                    isOpen={showNotifications}
+                    onClose={() => setShowNotifications(false)}
+                  />
+                </div>
 
                 {/* Profile Dropdown */}
                 <div className="relative">
                   <button
-                    onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                    onClick={() => {
+                      setProfileMenuOpen(!profileMenuOpen);
+                      setShowNotifications(false);
+                    }}
                     className="flex items-center space-x-3 px-3 py-2 rounded-xl text-gray-300 hover:bg-[#1E1E2A] transition-colors"
                   >
                     <div className="w-8 h-8 bg-gradient-to-br from-[#A88BFF] to-[#8B6FE8] rounded-full flex items-center justify-center">

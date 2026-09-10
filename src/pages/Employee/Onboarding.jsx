@@ -7,7 +7,7 @@ import {
   ShieldCheck, ShieldX, Loader2, RefreshCw, UserCheck
 } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import { config } from '../../config/api.config';
 import { useAuth } from '../../context/AuthContext';
 
@@ -141,56 +141,12 @@ const Onboarding = () => {
   
   // Template states
   const [templates, setTemplates] = useState([]);
-  const [agreementTemplatesForManagement, setAgreementTemplatesForManagement] = useState([
-    // Add template directly to initial state as backup
-    {
-      _id: '69a59d7252e1c69cda4ec39b',
-      templateId: 'FTC-1772461426396-N4MEXTW0W',
-      name: 'Fixed Term Employment Contract - Program Officer',
-      description: 'Comprehensive fixed term employment contract for program officer positions with all terms and conditions, annexures, and legal clauses',
-      category: 'employment',
-      subject: 'Fixed Term Employment Contract for the position of {{designation}}',
-      status: 'active',
-      isDefault: false,
-      legalReviewed: true,
-      usageCount: 0,
-      variables: [
-        { key: 'employeeCode', label: 'Employee Code', type: 'text', required: true },
-        { key: 'contractDate', label: 'Contract Date', type: 'date', required: true },
-        { key: 'employeeName', label: 'Employee Full Name', type: 'text', required: true },
-        { key: 'employeeAddress', label: 'Employee Address', type: 'text', required: true },
-        { key: 'designation', label: 'Designation', type: 'text', required: true },
-        { key: 'companyName', label: 'Company Full Name', type: 'text', required: true },
-        { key: 'companyShortName', label: 'Company Short Name', type: 'text', required: true },
-        { key: 'grossSalary', label: 'Gross Salary (Rs.)', type: 'currency', required: true },
-        { key: 'grossSalaryWords', label: 'Gross Salary in Words', type: 'text', required: true },
-        { key: 'startDate', label: 'Start Date', type: 'date', required: true },
-        { key: 'endDate', label: 'End Date', type: 'date', required: true },
-        { key: 'workLocation', label: 'Work Location', type: 'text', required: true },
-        { key: 'reportingTo', label: 'Reporting To', type: 'text', required: true },
-        { key: 'noticePeriod', label: 'Notice Period', type: 'text', required: false, defaultValue: 'Thirty Days' },
-        { key: 'jurisdiction', label: 'Governing Jurisdiction', type: 'text', required: false, defaultValue: 'Delhi' },
-        { key: 'basicSalary', label: 'Basic Salary', type: 'currency', required: true },
-        { key: 'hra', label: 'HRA', type: 'currency', required: true },
-        { key: 'specialAllowance', label: 'Special Allowance', type: 'currency', required: true },
-        { key: 'telephoneAllowance', label: 'Telephone Allowance', type: 'currency', required: true },
-        { key: 'employerPF', label: 'Employer PF Contribution', type: 'currency', required: true },
-        { key: 'costToCompany', label: 'Cost to Company', type: 'currency', required: true },
-        { key: 'medicalInsuranceSum', label: 'Medical Insurance Sum Assured', type: 'text', required: false, defaultValue: '1 lakh' },
-        { key: 'accidentInsuranceSum', label: 'Accident Insurance Sum Assured', type: 'text', required: false, defaultValue: '5 Lakh' },
-        { key: 'authorizedSignatory', label: 'Authorized Signatory', type: 'text', required: true },
-        { key: 'signatoryTitle', label: 'Signatory Title', type: 'text', required: true }
-      ],
-      tags: ['fixed-term', 'program-officer', 'comprehensive', 'legal', 'contract'],
-      createdAt: new Date('2026-03-02T19:53:46.000Z'),
-      updatedAt: new Date('2026-03-02T19:53:46.000Z')
-    }
-  ]);
+  const [agreementTemplatesForManagement, setAgreementTemplatesForManagement] = useState([]);
   const [templateLoading, setTemplateLoading] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [editingTemplateType, setEditingTemplateType] = useState('offer');
-  const [templateFilter, setTemplateFilter] = useState({ status: '', category: '', search: '', type: '' });
+  const [templateFilter, setTemplateFilter] = useState({ status: '', category: '', search: '', type: 'offer' });
   
   // Send Offer Modal states
   const [showSendOfferModal, setShowSendOfferModal] = useState(false);
@@ -469,40 +425,30 @@ const Onboarding = () => {
   const fetchTemplates = async () => {
     setTemplateLoading(true);
     try {
-      // Fetch offer templates
-      const res = await api.get('/offer-templates', {
-        params: templateFilter
-      });
-      setTemplates(res.data.data);
-      
-      // Also fetch agreement templates
-      try {
-        console.log('🔍 Fetching agreement templates...');
-        const agreementRes = await api.get('/agreement-templates', {
-          params: {} // Remove status filter to see all templates
-        });
-        console.log('✅ Agreement templates response:', agreementRes.data);
-        console.log('📊 Agreement templates data:', agreementRes.data.data);
-        console.log('📊 Agreement templates count:', agreementRes.data.data?.length || 0);
-        
-        // If API returns templates, use them. Otherwise, keep the manual template.
-        if (agreementRes.data.data && agreementRes.data.data.length > 0) {
-          setAgreementTemplatesForManagement(agreementRes.data.data);
-        } else {
-          // Keep the manual template that was set in initial state
-          console.log('🔧 Keeping manual template since API returned no data');
-        }
-      } catch (agreementError) {
-        console.error('❌ Error fetching agreement templates:', agreementError);
-        console.error('❌ Error response:', agreementError.response?.data);
-        console.error('❌ Error status:', agreementError.response?.status);
-        
-        // Keep the manual template that was set in initial state
-        console.log('🔧 Keeping manual template due to API error');
-      }
+      const { type, ...sharedFilters } = templateFilter;
+      const offerParams = {
+        status: sharedFilters.status || undefined,
+        category: type === 'agreement' ? undefined : (sharedFilters.category || undefined),
+        search: sharedFilters.search || undefined,
+        limit: 100
+      };
+      const agreementParams = {
+        status: sharedFilters.status || undefined,
+        category: type === 'offer' ? undefined : (sharedFilters.category || undefined),
+        search: sharedFilters.search || undefined,
+        limit: 100
+      };
+
+      const [offerRes, agreementRes] = await Promise.all([
+        api.get('/offer-templates', { params: offerParams }),
+        api.get('/agreement-templates', { params: agreementParams })
+      ]);
+
+      setTemplates(offerRes.data.data || []);
+      setAgreementTemplatesForManagement(agreementRes.data.data || []);
     } catch (e) {
       console.error('Failed to fetch templates:', e);
-      toast.error('Failed to fetch templates');
+      toast.error(e?.response?.data?.message || 'Failed to fetch templates');
     } finally {
       setTemplateLoading(false);
     }
@@ -538,34 +484,45 @@ const Onboarding = () => {
 
   const deleteTemplate = async (id, type = 'offer') => {
     if (!confirm('Are you sure you want to delete this template?')) return;
+    if (!id) {
+      toast.error('Invalid template id');
+      return;
+    }
     
     try {
       const endpoint = type === 'agreement' ? 'agreement-templates' : 'offer-templates';
-      await api.delete(`/${endpoint}/${id}`);
-      toast.success('Template deleted successfully');
+      const res = await api.delete(`/${endpoint}/${id}`);
+      toast.success(res.data?.message || 'Template deleted successfully');
       fetchTemplates();
     } catch (error) {
-      toast.error('Failed to delete template');
+      toast.error(error?.response?.data?.message || 'Failed to delete template');
     }
   };
 
   const duplicateTemplate = async (template, type = 'offer') => {
     try {
-      const newTemplate = {
-        ...template,
-        name: `${template.name} (Copy)`,
-        isDefault: false
-      };
-      delete newTemplate._id;
-      delete newTemplate.createdAt;
-      delete newTemplate.updatedAt;
-
       const endpoint = type === 'agreement' ? 'agreement-templates' : 'offer-templates';
-      await api.post(`/${endpoint}`, newTemplate);
+      // Prefer dedicated duplicate endpoint when available
+      try {
+        await api.post(`/${endpoint}/${template._id}/duplicate`);
+      } catch {
+        const newTemplate = {
+          name: `${template.name} (Copy)`,
+          description: template.description,
+          category: template.category,
+          subject: template.subject,
+          content: template.content,
+          status: 'draft',
+          isDefault: false,
+          variables: template.variables || [],
+          tags: template.tags || []
+        };
+        await api.post(`/${endpoint}`, newTemplate);
+      }
       toast.success('Template duplicated successfully');
       fetchTemplates();
     } catch (error) {
-      toast.error('Failed to duplicate template');
+      toast.error(error?.response?.data?.message || 'Failed to duplicate template');
     }
   };
 
@@ -579,30 +536,37 @@ const Onboarding = () => {
       toast.success(`Template ${status === 'active' ? 'activated' : 'deactivated'} successfully`);
       fetchTemplates();
     } catch (error) {
-      toast.error('Failed to update template status');
+      toast.error(error?.response?.data?.message || 'Failed to update template status');
     }
   };
 
   const saveTemplate = async (templateData) => {
     try {
+      const type = editingTemplate
+        ? editingTemplateType
+        : (templateFilter.type === 'agreement' ? 'agreement' : 'offer');
+      const endpoint = type === 'agreement' ? 'agreement-templates' : 'offer-templates';
+
+      // Strip offer-only fields for agreements
+      const payload = { ...templateData };
+      if (type === 'agreement') {
+        delete payload.expiryDays;
+        delete payload.reminderDays;
+      }
+
       if (editingTemplate) {
-        // Update existing template
-        const endpoint = editingTemplateType === 'agreement' ? 'agreement-templates' : 'offer-templates';
-        await api.put(`/${endpoint}/${editingTemplate._id}`, templateData);
+        await api.put(`/${endpoint}/${editingTemplate._id}`, payload);
         toast.success('Template updated successfully');
       } else {
-        // Create new template
-        const createType = templateFilter.type === 'agreement' ? 'agreement' : 'offer';
-        const endpoint = createType === 'agreement' ? 'agreement-templates' : 'offer-templates';
-        await api.post(`/${endpoint}`, templateData);
+        await api.post(`/${endpoint}`, payload);
         toast.success('Template created successfully');
       }
       fetchTemplates();
       setShowTemplateModal(false);
       setEditingTemplate(null);
-      setEditingTemplateType('offer');
+      setEditingTemplateType(templateFilter.type === 'agreement' ? 'agreement' : 'offer');
     } catch (error) {
-      toast.error('Failed to save template');
+      toast.error(error?.response?.data?.message || 'Failed to save template');
     }
   };
 
@@ -635,7 +599,9 @@ const Onboarding = () => {
           {activeTab === 'templates' && (
             <button
               onClick={() => {
+                const type = templateFilter.type === 'agreement' ? 'agreement' : 'offer';
                 setEditingTemplate(null);
+                setEditingTemplateType(type);
                 setShowTemplateModal(true);
               }}
               className="px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20 flex items-center space-x-2"
@@ -859,6 +825,7 @@ const Onboarding = () => {
       {showTemplateModal && (
         <TemplateModal
           template={editingTemplate}
+          templateType={editingTemplateType}
           onClose={() => {
             setShowTemplateModal(false);
             setEditingTemplate(null);
@@ -1326,11 +1293,27 @@ const OnboardingDetailsModal = ({ onboarding, onClose, verifyingDoc, onAcceptDoc
 
   const getDocumentHref = (url) => {
     if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    const backendBaseUrl = config.apiBaseUrl.replace('/api', '');
-    if (url.startsWith('/uploads/')) return `${backendBaseUrl}${url}`;
-    if (url.startsWith('/')) return url;
-    return `${backendBaseUrl}/uploads/${url}`;
+    const token = localStorage.getItem('token') || '';
+    const apiBase = config.apiBaseUrl.replace(/\/$/, '');
+    let path = url;
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      try {
+        const u = new URL(url);
+        if (u.pathname.includes('/uploads/')) {
+          path = u.pathname.slice(u.pathname.indexOf('/uploads/') + '/uploads/'.length);
+        } else {
+          return url;
+        }
+      } catch {
+        return url;
+      }
+    } else if (url.startsWith('/uploads/')) {
+      path = url.slice('/uploads/'.length);
+    } else if (url.startsWith('/')) {
+      path = url.replace(/^\/+/, '');
+    }
+    const qs = token ? `?access_token=${encodeURIComponent(token)}` : '';
+    return `${apiBase}/files/${path}${qs}`;
   };
 
   return (
@@ -1598,18 +1581,19 @@ const OnboardingDetailsModal = ({ onboarding, onClose, verifyingDoc, onAcceptDoc
 
 // Templates Section Component
 const TemplatesSection = ({ offerTemplates, agreementTemplates, loading, filter, setFilter, onEdit, onDelete, onDuplicate, onUpdateStatus }) => {
-  const [templateType, setTemplateType] = useState('offer'); // 'offer' or 'agreement'
+  const templateType = filter.type === 'agreement' ? 'agreement' : 'offer';
   
-  const currentTemplates = templateType === 'offer' ? offerTemplates : agreementTemplates;
-  
-  // Debug logging
-  console.log('🔍 TemplatesSection Debug:');
-  console.log('  - templateType:', templateType);
-  console.log('  - offerTemplates length:', offerTemplates.length);
-  console.log('  - agreementTemplates length:', agreementTemplates.length);
-  console.log('  - currentTemplates length:', currentTemplates.length);
-  console.log('  - currentTemplates:', currentTemplates);
-  
+  const currentTemplates = (templateType === 'offer' ? offerTemplates : agreementTemplates).filter((template) => {
+    if (filter.search) {
+      const q = filter.search.toLowerCase();
+      const hay = `${template.name || ''} ${template.description || ''} ${template.subject || ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (filter.status && template.status !== filter.status) return false;
+    if (filter.category && template.category !== filter.category) return false;
+    return true;
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -1624,10 +1608,7 @@ const TemplatesSection = ({ offerTemplates, agreementTemplates, loading, filter,
       <div className="card p-1 mb-4">
         <div className="flex space-x-2">
           <button
-            onClick={() => {
-              setTemplateType('offer');
-              setFilter({ ...filter, type: 'offer' });
-            }}
+            onClick={() => setFilter({ ...filter, type: 'offer', category: '' })}
             className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
               templateType === 'offer'
                 ? 'bg-primary-600 text-white'
@@ -1640,10 +1621,7 @@ const TemplatesSection = ({ offerTemplates, agreementTemplates, loading, filter,
             </div>
           </button>
           <button
-            onClick={() => {
-              setTemplateType('agreement');
-              setFilter({ ...filter, type: 'agreement' });
-            }}
+            onClick={() => setFilter({ ...filter, type: 'agreement', category: '' })}
             className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
               templateType === 'agreement'
                 ? 'bg-primary-600 text-white'
@@ -1696,13 +1674,16 @@ const TemplatesSection = ({ offerTemplates, agreementTemplates, loading, filter,
                 <option value="contract">Contract</option>
                 <option value="intern">Intern</option>
                 <option value="executive">Executive</option>
+                <option value="general">General</option>
               </>
             ) : (
               <>
                 <option value="employment">Employment</option>
                 <option value="confidentiality">Confidentiality</option>
+                <option value="non-compete">Non-Compete</option>
+                <option value="ip-assignment">IP Assignment</option>
                 <option value="remote-work">Remote Work</option>
-                <option value="internship">Internship</option>
+                <option value="general">General</option>
               </>
             )}
           </select>
@@ -1812,37 +1793,48 @@ const TemplatesSection = ({ offerTemplates, agreementTemplates, loading, filter,
 };
 
 // Template Modal Component
-const TemplateModal = ({ template, onClose, onSave }) => {
+const TemplateModal = ({ template, templateType = 'offer', onClose, onSave }) => {
+  const isAgreement = templateType === 'agreement';
+  const defaultCategory = isAgreement ? 'employment' : 'full-time';
+
   const [formData, setFormData] = useState({
     name: template?.name || '',
     description: template?.description || '',
-    category: template?.category || 'full-time',
+    category: template?.category || defaultCategory,
     subject: template?.subject || '',
     content: template?.content || '',
     status: template?.status || 'draft',
     isDefault: template?.isDefault || false,
     variables: template?.variables || [],
-    expiryDays: template?.expiryDays || 1,
+    expiryDays: template?.expiryDays
+      ?? (template?.settings?.autoExpiry?.hours
+        ? Math.max(1, Math.round(template.settings.autoExpiry.hours / 24))
+        : 1),
     reminderDays: template?.reminderDays || []
   });
 
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
   const validate = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Template name is required';
     if (!formData.subject.trim()) newErrors.subject = 'Email subject is required';
     if (!formData.content.trim()) newErrors.content = 'Template content is required';
-    if (formData.expiryDays < 1) newErrors.expiryDays = 'Expiry days must be at least 1';
+    if (!isAgreement && formData.expiryDays < 1) newErrors.expiryDays = 'Expiry days must be at least 1';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validate()) {
-      onSave(formData);
+    if (!validate()) return;
+    setSaving(true);
+    try {
+      await onSave(formData);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -1853,11 +1845,17 @@ const TemplateModal = ({ template, onClose, onSave }) => {
     });
   };
 
-  const availableVariables = [
-    'candidateName', 'candidateEmail', 'position', 'department',
-    'offeredCTC', 'startDate', 'joiningDate', 'companyName',
-    'hrName', 'hrEmail', 'hrPhone'
-  ];
+  const availableVariables = isAgreement
+    ? [
+        'employeeName', 'employeeEmail', 'designation', 'department',
+        'joiningDate', 'startDate', 'companyName', 'workLocation',
+        'hrName', 'hrEmail', 'grossSalary'
+      ]
+    : [
+        'candidateName', 'candidateEmail', 'position', 'department',
+        'offeredCTC', 'startDate', 'joiningDate', 'companyName',
+        'hrName', 'hrEmail', 'hrPhone'
+      ];
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -1866,9 +1864,11 @@ const TemplateModal = ({ template, onClose, onSave }) => {
         <div className="sticky top-0 bg-dark-900 border-b border-dark-700 p-6 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white">
-              {template ? 'Edit Template' : 'Create New Template'}
+              {template ? `Edit ${isAgreement ? 'Agreement' : 'Offer'} Template` : `Create ${isAgreement ? 'Agreement' : 'Offer'} Template`}
             </h2>
-            <p className="text-gray-400 mt-1">Design your offer letter template</p>
+            <p className="text-gray-400 mt-1">
+              {isAgreement ? 'Design your employment / legal agreement template' : 'Design your offer letter template'}
+            </p>
           </div>
           <button onClick={onClose} className="px-4 py-2 bg-[#1E1E2A] border border-gray-700 text-gray-200 rounded-lg hover:border-[#A88BFF] hover:text-[#A88BFF] transition-colors p-2">
             <X size={20} />
@@ -1888,7 +1888,7 @@ const TemplateModal = ({ template, onClose, onSave }) => {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className={`input-field w-full ${errors.name ? 'border-red-500' : ''}`}
-                placeholder="e.g., Full-Time Offer Letter"
+                placeholder={isAgreement ? 'e.g., Employment Agreement' : 'e.g., Full-Time Offer Letter'}
               />
               {errors.name && <p className="text-red-400 text-sm mt-1">{errors.name}</p>}
             </div>
@@ -1902,11 +1902,25 @@ const TemplateModal = ({ template, onClose, onSave }) => {
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 className="input-field w-full"
               >
-                <option value="full-time">Full Time</option>
-                <option value="part-time">Part Time</option>
-                <option value="contract">Contract</option>
-                <option value="intern">Intern</option>
-                <option value="executive">Executive</option>
+                {isAgreement ? (
+                  <>
+                    <option value="employment">Employment</option>
+                    <option value="confidentiality">Confidentiality</option>
+                    <option value="non-compete">Non-Compete</option>
+                    <option value="ip-assignment">IP Assignment</option>
+                    <option value="remote-work">Remote Work</option>
+                    <option value="general">General</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="full-time">Full Time</option>
+                    <option value="part-time">Part Time</option>
+                    <option value="contract">Contract</option>
+                    <option value="intern">Intern</option>
+                    <option value="executive">Executive</option>
+                    <option value="general">General</option>
+                  </>
+                )}
               </select>
             </div>
           </div>
@@ -1933,7 +1947,9 @@ const TemplateModal = ({ template, onClose, onSave }) => {
               value={formData.subject}
               onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
               className={`input-field w-full ${errors.subject ? 'border-red-500' : ''}`}
-              placeholder="e.g., Offer Letter - {{position}} at {{companyName}}"
+              placeholder={isAgreement
+                ? 'e.g., Employment Agreement - {{designation}} at {{companyName}}'
+                : 'e.g., Offer Letter - {{position}} at {{companyName}}'}
             />
             {errors.subject && <p className="text-red-400 text-sm mt-1">{errors.subject}</p>}
           </div>
@@ -1967,16 +1983,18 @@ const TemplateModal = ({ template, onClose, onSave }) => {
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
               className={`input-field w-full font-mono text-sm ${errors.content ? 'border-red-500' : ''}`}
               rows="12"
-              placeholder="Dear {{candidateName}},&#10;&#10;We are pleased to offer you the position of {{position}} at {{companyName}}...&#10;&#10;Use {{variableName}} to insert dynamic content."
+              placeholder={isAgreement
+                ? 'This Employment Agreement is entered into between {{companyName}} and {{employeeName}}...'
+                : 'Dear {{candidateName}},\n\nWe are pleased to offer you the position of {{position}} at {{companyName}}...'}
             />
             {errors.content && <p className="text-red-400 text-sm mt-1">{errors.content}</p>}
             <p className="text-xs text-gray-500 mt-1">
-              Use double curly braces for variables, e.g., {`{{candidateName}}`}
+              Use double curly braces for variables, e.g., {`{{${isAgreement ? 'employeeName' : 'candidateName'}}}`}
             </p>
           </div>
 
           {/* Settings */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className={`grid grid-cols-1 ${isAgreement ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Status
@@ -1992,19 +2010,21 @@ const TemplateModal = ({ template, onClose, onSave }) => {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Offer Expiry (Days) *
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={formData.expiryDays}
-                onChange={(e) => setFormData({ ...formData, expiryDays: parseInt(e.target.value) })}
-                className={`input-field w-full ${errors.expiryDays ? 'border-red-500' : ''}`}
-              />
-              {errors.expiryDays && <p className="text-red-400 text-sm mt-1">{errors.expiryDays}</p>}
-            </div>
+            {!isAgreement && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Offer Expiry (Days) *
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.expiryDays}
+                  onChange={(e) => setFormData({ ...formData, expiryDays: parseInt(e.target.value) })}
+                  className={`input-field w-full ${errors.expiryDays ? 'border-red-500' : ''}`}
+                />
+                {errors.expiryDays && <p className="text-red-400 text-sm mt-1">{errors.expiryDays}</p>}
+              </div>
+            )}
 
             <div className="flex items-center pt-8">
               <label className="flex items-center space-x-2 cursor-pointer">
@@ -2030,10 +2050,11 @@ const TemplateModal = ({ template, onClose, onSave }) => {
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20 flex items-center space-x-2"
+              disabled={saving}
+              className="px-4 py-2 bg-[#A88BFF] text-white rounded-lg hover:bg-[#B89CFF] transition-all shadow-lg shadow-[#A88BFF]/20 flex items-center space-x-2 disabled:opacity-60"
             >
               <Save size={18} />
-              <span>{template ? 'Update Template' : 'Create Template'}</span>
+              <span>{saving ? 'Saving...' : template ? 'Update Template' : 'Create Template'}</span>
             </button>
           </div>
         </form>

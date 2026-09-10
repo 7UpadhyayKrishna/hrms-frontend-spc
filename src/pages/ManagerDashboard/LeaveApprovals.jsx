@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import BottomNavigation from '../../components/BottomNavigation';
 import { ArrowLeft, CheckCircle, XCircle, Clock, Calendar, MessageSquare } from 'lucide-react';
 import { config } from '../../config/api.config';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const LeaveApprovals = () => {
   const navigate = useNavigate();

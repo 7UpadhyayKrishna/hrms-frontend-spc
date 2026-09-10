@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Check, X, Clock, FileEdit } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import { useAuth } from '../../context/AuthContext';
 
 const ProfileUpdateRequest = () => {

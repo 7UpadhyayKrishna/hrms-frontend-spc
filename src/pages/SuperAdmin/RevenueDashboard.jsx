@@ -17,7 +17,7 @@ import {
   RefreshCw,
   Filter
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const RevenueDashboard = () => {
   const { theme } = useTheme();

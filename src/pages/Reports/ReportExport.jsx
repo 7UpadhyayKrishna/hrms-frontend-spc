@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Download, FileSpreadsheet } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const ReportExport = () => {
   const [loading, setLoading] = useState({});

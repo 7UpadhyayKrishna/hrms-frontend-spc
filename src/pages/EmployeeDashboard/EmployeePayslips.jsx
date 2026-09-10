@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { getPayslipHistory } from '../../api/employeeDashboard';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import { DollarSign, Download, Eye, Calendar } from 'lucide-react';
 
 const EmployeePayslips = () => {

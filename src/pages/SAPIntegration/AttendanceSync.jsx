@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { RefreshCw, Clock } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const AttendanceSync = () => {
   const [syncing, setSyncing] = useState(false);

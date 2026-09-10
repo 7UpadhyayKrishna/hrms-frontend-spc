@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Users, Key, Shield, Mail, Calendar, X } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { getDashboardStats, getSystemHealth } from '../../api/superAdmin';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import {
   Users,
   Package,

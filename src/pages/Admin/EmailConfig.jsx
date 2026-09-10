@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Settings, Save, TestTube, Plus, X, Edit2, Trash2, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import api from '../../api/axios';
 
 const EmailConfig = () => {

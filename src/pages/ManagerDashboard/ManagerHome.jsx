@@ -16,7 +16,7 @@ import {
   Loader2,
   X
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const PROGRESS_STATUS_OPTIONS = [
   { value: 'not-started', label: 'Not Started' },

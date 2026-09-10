@@ -5,7 +5,7 @@ import {
   AlertCircle, Settings, Mail, Calendar, X, Save
 } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const OfferTemplates = () => {
   const [templates, setTemplates] = useState([]);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Filter, Calendar } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const AccrualHistory = () => {
   const [loading, setLoading] = useState(true);

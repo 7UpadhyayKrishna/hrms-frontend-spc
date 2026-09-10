@@ -16,7 +16,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { getPackages, togglePackageStatus, deletePackage, createPackage } from '../../api/superAdmin';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import PackageAssignment from '../../components/SuperAdmin/PackageAssignment';
 import PackageForm from '../../components/SuperAdmin/PackageForm';
 

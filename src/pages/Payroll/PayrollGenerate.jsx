@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const PayrollGenerate = () => {
   const navigate = useNavigate();

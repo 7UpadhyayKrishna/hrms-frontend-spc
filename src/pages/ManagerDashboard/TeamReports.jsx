@@ -62,8 +62,27 @@ const TeamReports = () => {
         }
 
         setTeamStats(statsJson.data || defaultStats);
-        setTeamMembers(membersJson.data || []);
-        setProjects(projectsJson.data || { current: [], past: [] });
+        setTeamMembers(Array.isArray(membersJson.data) ? membersJson.data : []);
+
+        // API may return an array of projects OR { current, past }
+        const projectPayload = projectsJson.data;
+        if (Array.isArray(projectPayload)) {
+          const current = projectPayload.filter(
+            (p) => !p.status || ['active', 'in_progress', 'ongoing'].includes(String(p.status).toLowerCase())
+          );
+          const past = projectPayload.filter(
+            (p) => p.status && ['completed', 'closed', 'archived', 'cancelled'].includes(String(p.status).toLowerCase())
+          );
+          setProjects({
+            current: current.length ? current : projectPayload,
+            past
+          });
+        } else {
+          setProjects({
+            current: Array.isArray(projectPayload?.current) ? projectPayload.current : [],
+            past: Array.isArray(projectPayload?.past) ? projectPayload.past : []
+          });
+        }
         setError(null);
       } catch (err) {
         console.error('Failed to load team reports:', err);
@@ -104,9 +123,9 @@ const TeamReports = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <button
-              onClick={() => navigate('/employee/manager/home')}
+              onClick={() => navigate('/manager/dashboard')}
               className="text-gray-400 hover:text-white transition-colors"
-              aria-label="Back to Manager Home"
+              aria-label="Back to Manager Dashboard"
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
@@ -184,13 +203,13 @@ const TeamReports = () => {
                     </thead>
                     <tbody className="text-sm text-gray-300 divide-y divide-gray-800">
                       {teamMembers.map(member => (
-                        <tr key={member._id} className="hover:bg-[#2A2A3A] transition-colors">
+                        <tr key={member._id || member.email || member.employeeCode} className="hover:bg-[#2A2A3A] transition-colors">
                           <td className="py-3 pr-4 font-medium text-white">
-                            {member.firstName} {member.lastName}
+                            {member.firstName || ''} {member.lastName || ''}
                           </td>
-                          <td className="py-3 pr-4">{member.email}</td>
-                          <td className="py-3 pr-4">{member.designation || '—'}</td>
-                          <td className="py-3 pr-4">{member.department?.name || member.department || '—'}</td>
+                          <td className="py-3 pr-4">{member.email || '—'}</td>
+                          <td className="py-3 pr-4">{member.designation || member.position || '—'}</td>
+                          <td className="py-3 pr-4">{member.department?.name || (typeof member.department === 'string' ? member.department : '—')}</td>
                           <td className="py-3 pr-4">{member.employeeCode || '—'}</td>
                         </tr>
                       ))}
@@ -202,8 +221,8 @@ const TeamReports = () => {
 
             {/* Project Allocation */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <ProjectOverview title="Active Projects" projects={projects.current} emptyMessage="No active projects" />
-              <ProjectOverview title="Recent Projects" projects={projects.past?.slice(0, 5) || []} emptyMessage="No recent projects" />
+              <ProjectOverview title="Active Projects" projects={projects?.current} emptyMessage="No active projects" />
+              <ProjectOverview title="Recent Projects" projects={projects?.past?.slice?.(0, 5)} emptyMessage="No recent projects" />
             </div>
           </>
         )}
@@ -229,33 +248,36 @@ const SummaryCard = ({ icon: Icon, label, value, subtitle, accent }) => (
   </div>
 );
 
-const ProjectOverview = ({ title, projects, emptyMessage }) => (
+const ProjectOverview = ({ title, projects, emptyMessage }) => {
+  const list = Array.isArray(projects) ? projects : [];
+
+  return (
   <div className="card p-6">
     <div className="flex items-center justify-between mb-4">
       <h2 className="text-lg font-semibold text-white flex items-center gap-2">
         <Briefcase className="w-5 h-5 text-[#A88BFF]" />
         {title}
       </h2>
-      <span className="text-xs text-gray-400 uppercase tracking-wide">{projects.length} Projects</span>
+      <span className="text-xs text-gray-400 uppercase tracking-wide">{list.length} Projects</span>
     </div>
 
-    {projects.length === 0 ? (
+    {list.length === 0 ? (
       <p className="text-gray-400 text-sm">{emptyMessage}</p>
     ) : (
       <div className="space-y-3">
-        {projects.map(project => (
-          <div key={project._id} className="bg-[#1E1E2A] rounded-xl p-4 border border-gray-800">
+        {list.map(project => (
+          <div key={project._id || project.id || project.projectCode || project.name} className="bg-[#1E1E2A] rounded-xl p-4 border border-gray-800">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-white font-medium">{project.name}</p>
-                <p className="text-xs text-gray-500">{project.projectCode}</p>
+                <p className="text-white font-medium">{project.name || 'Untitled project'}</p>
+                <p className="text-xs text-gray-500">{project.projectCode || ''}</p>
               </div>
-              <span className="text-xs text-gray-400 capitalize">{project.status}</span>
+              <span className="text-xs text-gray-400 capitalize">{project.status || '—'}</span>
             </div>
             <div className="grid grid-cols-2 gap-2 mt-3 text-xs text-gray-400">
               <span><span className="text-gray-500">Client:</span> {project.client?.name || '—'}</span>
-              <span><span className="text-gray-500">Team Size:</span> {project.teamSize || project.teamMembers?.length || 0}</span>
-              <span><span className="text-gray-500">Role:</span> {project.managerRole || '—'}</span>
+              <span><span className="text-gray-500">Team Size:</span> {project.teamSize || project.teamMembers?.length || project.assignedManagers?.length || 0}</span>
+              <span><span className="text-gray-500">Role:</span> {project.userRole || project.managerRole || '—'}</span>
               <span><span className="text-gray-500">Duration:</span> {formatDateRange(project.startDate, project.endDate)}</span>
             </div>
           </div>
@@ -263,7 +285,8 @@ const ProjectOverview = ({ title, projects, emptyMessage }) => (
       </div>
     )}
   </div>
-);
+  );
+};
 
 const formatDateRange = (start, end) => {
   if (!start) return '—';

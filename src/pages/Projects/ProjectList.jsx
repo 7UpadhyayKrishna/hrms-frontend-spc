@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Search, FolderKanban, X, Loader2, Eye } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const ProjectList = () => {
   const [projects, setProjects] = useState([]);

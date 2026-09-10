@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Search, Edit, Trash2, Eye, Briefcase, RefreshCw } from 'lucide-react';
 import api from '../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../utils/toast';
 import JobCreateModal from '../components/JobCreateModal';
 
 const JobDesk = () => {

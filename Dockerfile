@@ -24,6 +24,14 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy source code
 COPY . .
 
+# Production API URL and public careers company id (pass at build time)
+ARG VITE_API_URL=
+ARG VITE_PUBLIC_COMPANY_ID=
+ARG VITE_GOOGLE_CLIENT_ID=
+ENV VITE_API_URL=$VITE_API_URL \
+    VITE_PUBLIC_COMPANY_ID=$VITE_PUBLIC_COMPANY_ID \
+    VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
 # Build the application
 RUN npm run build && \
     rm -rf node_modules /tmp/* /var/cache/apk/*

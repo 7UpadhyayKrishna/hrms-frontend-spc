@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Briefcase, MapPin, Clock, Building2, Search, Filter, X, Upload } from 'lucide-react';
 import axios from 'axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import JobApplicationModal from '../../components/JobApplicationModal';
 import ResumeSubmissionModal from '../../components/ResumeSubmissionModal';
 import { config } from '../../config/api.config';
@@ -21,6 +21,7 @@ const CareersPage = () => {
 
   // Get API base URL from centralized config
   const API_BASE_URL = config.apiBaseUrl;
+  const PUBLIC_COMPANY_ID = import.meta.env.VITE_PUBLIC_COMPANY_ID;
 
   useEffect(() => {
     fetchJobs();
@@ -34,10 +35,15 @@ const CareersPage = () => {
   const fetchJobs = async () => {
     try {
       setLoading(true);
+      if (!PUBLIC_COMPANY_ID) {
+        toast.error('Careers page is not configured (missing VITE_PUBLIC_COMPANY_ID)');
+        setJobs([]);
+        return;
+      }
       // Add cache-busting and companyId
       const response = await axios.get(`${API_BASE_URL}/public/jobs`, {
         params: { 
-          companyId: '696b515db6c9fd5fd51aed1c',
+          companyId: PUBLIC_COMPANY_ID,
           _t: Date.now() 
         },
         headers: {
@@ -70,8 +76,9 @@ const CareersPage = () => {
 
   const fetchStats = async () => {
     try {
+      if (!PUBLIC_COMPANY_ID) return;
       const response = await axios.get(`${API_BASE_URL}/public/jobs/stats`, {
-        params: { companyId: '696b515db6c9fd5fd51aed1c' }
+        params: { companyId: PUBLIC_COMPANY_ID }
       });
       setStats(response.data.data);
     } catch (error) {
@@ -116,10 +123,15 @@ const CareersPage = () => {
 
   const handleApplicationSubmit = async (applicationData) => {
     try {
+      if (!PUBLIC_COMPANY_ID) {
+        toast.error('Careers page is not configured (missing VITE_PUBLIC_COMPANY_ID)');
+        return;
+      }
       const response = await axios.post(
         `${API_BASE_URL}/public/jobs/${selectedJob._id}/apply`,
         applicationData,
         {
+          params: { companyId: PUBLIC_COMPANY_ID },
           headers: {
             'Content-Type': 'multipart/form-data',
           },

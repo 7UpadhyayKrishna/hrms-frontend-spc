@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Search, Filter, Eye, Trash2, UserCheck, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const TalentPoolList = () => {
   const navigate = useNavigate();

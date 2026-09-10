@@ -4,7 +4,7 @@ import { ArrowLeft, Upload, Download, FileSpreadsheet, Link as LinkIcon, AlertCi
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import BulkUploadHelp from '../../components/BulkUploadHelp';
 
 const BulkEmployeeUpload = () => {

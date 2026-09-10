@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import BottomNavigation from '../../components/BottomNavigation';
 import { Briefcase, Users, Calendar, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { getEmployeeProjects } from '../../api/employeeDashboard';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const ModernProjects = () => {
   const [activeFilter, setActiveFilter] = useState('all');

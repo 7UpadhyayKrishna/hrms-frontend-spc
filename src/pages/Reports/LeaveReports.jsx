@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Filter, FileText } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const LeaveReports = () => {
   const [loading, setLoading] = useState(false);

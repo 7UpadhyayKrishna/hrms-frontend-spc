@@ -204,7 +204,7 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
               onClick={onClose}
               className="text-sm text-blue-600 hover:text-blue-800"
             >
-              View all notifications
+              Close
             </button>
           </div>
         )}

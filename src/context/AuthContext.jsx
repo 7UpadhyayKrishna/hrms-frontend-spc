@@ -155,9 +155,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const googleLogin = async (credential) => {
+  const googleLogin = async (credential, companyId = null) => {
     try {
-      const response = await api.post('/auth/google', { credential });
+      const response = await api.post('/auth/google', {
+        credential,
+        ...(companyId && { companyId })
+      });
       const { token, user } = response.data.data;
 
       localStorage.setItem('token', token);
@@ -223,7 +226,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (_) {
+      // Clear local session even if revoke fails (e.g. Redis down)
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);

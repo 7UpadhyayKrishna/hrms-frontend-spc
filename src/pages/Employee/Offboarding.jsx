@@ -6,7 +6,7 @@ import {
   Phone, Mail, MapPin, Building, CreditCard, Settings, Download
 } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 // Stage labels matching the backend model
 const stageLabels = [

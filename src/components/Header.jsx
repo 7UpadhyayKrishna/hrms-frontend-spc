@@ -135,7 +135,8 @@ const Header = ({ toggleSidebar }) => {
             </div>
             <div className="hidden md:block text-left">
               <p className="text-sm font-medium theme-text" style={{ color: 'var(--color-text)' }}>
-                {user?.employee?.firstName} {user?.employee?.lastName}
+                {user?.firstName || user?.employee?.firstName || user?.email?.split('@')[0]}{' '}
+                {user?.lastName || user?.employee?.lastName || ''}
               </p>
               <p className="text-xs theme-text-secondary capitalize" style={{ color: 'var(--color-textSecondary)' }}>{user?.role}</p>
             </div>
@@ -162,7 +163,8 @@ const Header = ({ toggleSidebar }) => {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium theme-text truncate"
                           style={{ color: 'var(--color-text)' }}>
-                          {user?.employee?.firstName} {user?.employee?.lastName}
+                          {user?.firstName || user?.employee?.firstName || user?.email?.split('@')[0]}{' '}
+                          {user?.lastName || user?.employee?.lastName || ''}
                         </p>
                         <p className="text-xs theme-text-secondary capitalize"
                           style={{ color: 'var(--color-textSecondary)' }}>
@@ -175,6 +177,11 @@ const Header = ({ toggleSidebar }) => {
                   {/* Menu Items */}
                   <div className="py-1">
                     <button
+                      type="button"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        navigate('/settings/profile');
+                      }}
                       className="w-full flex items-center space-x-2 px-4 py-2 text-sm theme-text"
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surfaceHover)'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -185,6 +192,11 @@ const Header = ({ toggleSidebar }) => {
                     </button>
 
                     <button
+                      type="button"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        navigate('/settings/preferences');
+                      }}
                       className="w-full flex items-center space-x-2 px-4 py-2 text-sm theme-text"
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surfaceHover)'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -195,6 +207,11 @@ const Header = ({ toggleSidebar }) => {
                     </button>
 
                     <button
+                      type="button"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        navigate('/settings/security');
+                      }}
                       className="w-full flex items-center space-x-2 px-4 py-2 text-sm theme-text"
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surfaceHover)'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}

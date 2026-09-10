@@ -112,6 +112,14 @@ const LoginLanding = () => {
                 <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-200">
                   Need access? Contact the SPC administration desk to provision your secure login.
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => navigate('/login/super-admin')}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300 transition hover:border-purple-400/40 hover:bg-purple-500/10 hover:text-white"
+                >
+                  Super Admin login
+                </button>
               </div>
             </div>
           </div>

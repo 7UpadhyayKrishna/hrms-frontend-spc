@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { RefreshCw, Calendar } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const LeaveSync = () => {
   const [syncing, setSyncing] = useState(false);

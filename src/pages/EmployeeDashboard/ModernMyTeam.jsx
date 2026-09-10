@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getDashboardOverview } from '../../api/employeeDashboard';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import BottomNavigation from '../../components/BottomNavigation';
 import { ArrowLeft, Search, Users, Clock, CheckCircle, Mail, Phone } from 'lucide-react';
 

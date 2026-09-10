@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, AlertTriangle, CheckCircle } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const SLAMonitoring = () => {
   const [loading, setLoading] = useState(true);

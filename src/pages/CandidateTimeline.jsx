@@ -5,7 +5,7 @@ import {
   AlertCircle, Video, Users, Star, MessageSquare, FileText, Send, Loader, SkipForward, UserPlus
 } from 'lucide-react';
 import api from '../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../utils/toast';
 import InterviewScheduleModal from '../components/InterviewScheduleModal';
 import InterviewFeedbackModal from '../components/InterviewFeedbackModal';
 import HRCallModal from '../components/HRCallModal';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Filter, FileText, AlertCircle } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const AttendanceReports = () => {
   const [loading, setLoading] = useState(false);
@@ -33,7 +33,7 @@ const AttendanceReports = () => {
           endpoint = '/reports/attendance/summary';
           break;
         case 'exception':
-          endpoint = '/reports/attendance/exception';
+          endpoint = '/reports/attendance/exceptions';
           break;
         default:
           endpoint = '/reports/attendance/summary';
@@ -59,7 +59,7 @@ const AttendanceReports = () => {
           endpoint = '/reports/attendance/summary';
           break;
         case 'exception':
-          endpoint = '/reports/attendance/exception';
+          endpoint = '/reports/attendance/exceptions';
           break;
         default:
           endpoint = '/reports/attendance/summary';

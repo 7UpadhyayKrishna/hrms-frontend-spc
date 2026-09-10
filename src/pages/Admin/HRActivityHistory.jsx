@@ -5,7 +5,7 @@ import {
   Briefcase, Download, RefreshCw, ChevronDown, ChevronUp, Upload
 } from 'lucide-react';
 import { getHRActivityHistory, getHRActivityStats, createTestHRActivityLog } from '../../api/hrActivityHistory';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const HRActivityHistory = () => {
   const [activities, setActivities] = useState([]);

@@ -20,7 +20,7 @@ import {
   UserCheck,
   AlertCircle
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import api from '../../api/axios';
 
 const PROGRESS_STATUS_OPTIONS = [

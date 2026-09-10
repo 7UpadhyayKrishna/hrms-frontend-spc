@@ -31,21 +31,21 @@ api.interceptors.response.use(
   (error) => {
     const isLoginRequest = error.config?.url?.includes('/auth/login') || 
                           error.config?.url?.includes('/auth/google');
+    const isPasswordUpdate = error.config?.url?.includes('/auth/updatepassword');
+
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.code === 'PASSWORD_CHANGE_REQUIRED' &&
+      !isPasswordUpdate &&
+      !window.location.pathname.includes('/change-password')
+    ) {
+      window.location.href = '/change-password';
+      return Promise.reject(error);
+    }
     
     // Handle authentication errors (401 Unauthorized) - but NOT for login requests
     if (error.response?.status === 401 && !isLoginRequest) {
       console.warn('⚠️ 401 Unauthorized - redirecting to login');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-      return Promise.reject(error);
-    }
-    
-    // Handle "User not found" errors (404) that indicate authentication issues - but NOT for login requests
-    if (error.response?.status === 404 && !isLoginRequest &&
-        (error.response?.data?.message?.includes('User not found') ||
-         error.response?.data?.code === 'USER_NOT_FOUND')) {
-      console.warn('⚠️ User not found - redirecting to login');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';

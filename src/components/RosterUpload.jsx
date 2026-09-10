@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, X, FileSpreadsheet } from 'lucide-react';
 import api from '../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../utils/toast';
 
 const RosterUpload = ({ onClose, onSuccess }) => {
   const [file, setFile] = useState(null);

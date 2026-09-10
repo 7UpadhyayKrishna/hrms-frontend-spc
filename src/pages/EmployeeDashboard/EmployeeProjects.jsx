@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { getEmployeeProjects } from '../../api/employeeDashboard';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import { Briefcase, Users, Calendar, CheckCircle, Clock } from 'lucide-react';
 
 const EmployeeProjects = () => {

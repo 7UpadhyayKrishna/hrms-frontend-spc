@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Search, Check, X, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import { useAuth } from '../../context/AuthContext';
 
 const LeaveList = () => {

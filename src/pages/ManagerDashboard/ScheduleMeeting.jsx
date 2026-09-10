@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import BottomNavigation from '../../components/BottomNavigation';
 import { config } from '../../config/api.config';
 import { ArrowLeft, Calendar, Clock, Users, MapPin, Video, Link2 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const ScheduleMeeting = () => {
   const navigate = useNavigate();

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, CheckSquare } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const ComplianceList = () => {
   const [compliances, setCompliances] = useState([]);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Users, MapPin, Link, Plus, X, Search, Video, Building } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import api from '../../api/axios';
 
 const ScheduleMeeting = () => {

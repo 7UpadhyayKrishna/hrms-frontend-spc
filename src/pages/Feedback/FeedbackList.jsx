@@ -65,7 +65,7 @@ import {
   X
 } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const FeedbackList = () => {
   const [feedbacks, setFeedbacks] = useState([]);

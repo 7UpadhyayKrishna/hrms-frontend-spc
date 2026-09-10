@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Upload, Loader, Briefcase, User, Mail, Phone, MapPin, DollarSign, GraduationCap, Award, BookOpen, Plus, Minus, Calendar, Heart } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../utils/toast';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 

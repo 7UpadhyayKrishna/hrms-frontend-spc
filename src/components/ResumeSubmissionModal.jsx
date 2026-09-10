@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Upload, Loader } from 'lucide-react';
 import axios from 'axios';
-import toast from 'react-hot-toast';
+import toast from '../utils/toast';
 import { config } from '../config/api.config';
 
 const ResumeSubmissionModal = ({ isOpen, onClose }) => {

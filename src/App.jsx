@@ -21,7 +21,7 @@ import CandidateDocuments from './pages/CandidateDocuments';
 import DocumentUpload from './pages/Public/DocumentUpload';
 import PayslipUpload from './pages/Public/PayslipUpload';
 import Unauthorized from './pages/Unauthorized';
-import DebugAuth from './components/DebugAuth';
+import ForceChangePassword from './pages/ForceChangePassword';
 
 // Admin Pages
 import Dashboard from './pages/Dashboard';
@@ -71,18 +71,34 @@ import ManagerScheduleMeeting from './pages/ManagerDashboard/ScheduleMeeting';
 import ManagerAnnouncements from './pages/ManagerDashboard/Announcements';
 import ManagerTeamReports from './pages/ManagerDashboard/TeamReports';
 
+import SuperAdminLogin from './pages/SuperAdminLogin';
+import SuperAdminLayout from './layouts/SuperAdminLayout';
+import SuperAdminDashboard from './pages/SuperAdmin/Dashboard';
+import ClientManagement from './pages/SuperAdmin/ClientManagement';
+import PackageManagement from './pages/SuperAdmin/PackageManagement';
+import SubscriptionManagement from './pages/SuperAdmin/SubscriptionManagement';
+import InvoiceCenter from './pages/SuperAdmin/InvoiceCenter';
+import RevenueDashboard from './pages/SuperAdmin/RevenueDashboard';
+import BillingAlerts from './pages/SuperAdmin/BillingAlerts';
+import RoleManagement from './pages/SuperAdmin/RoleManagement';
+import AuditLogs from './pages/SuperAdmin/AuditLogs';
+
 // Admin Additional Pages
 import AdminScheduleMeeting from './pages/Admin/ScheduleMeeting';
 import AdminAnnouncements from './pages/Admin/Announcements';
 import AdminTeamReports from './pages/Admin/TeamReports';
 import AdminEmailConfig from './pages/Admin/EmailConfig';
+import SettingsProfile from './pages/Settings/Profile';
+import SettingsSecurity from './pages/Settings/Security';
+import SettingsPreferences from './pages/Settings/Preferences';
+import ThemeSettings from './pages/Settings/ThemeSettings';
 
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <NotificationProvider>
-          <Router>
+          <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Toaster
             position="top-right"
             toastOptions={{
@@ -111,6 +127,7 @@ function App() {
           <Route path="/login" element={<LoginLanding />} />
           <Route path="/login/company-select" element={<CompanySelect />} />
           <Route path="/login/spc-management" element={<SPCManagementLogin />} />
+          <Route path="/login/super-admin" element={<SuperAdminLogin />} />
           <Route path="/login/:companySlug" element={<CompanyLogin />} />
           <Route path="/careers" element={<CareersPage />} />
           <Route path="/jobs" element={<CareersPage />} />
@@ -118,13 +135,56 @@ function App() {
           <Route path="/public/upload-documents/:token" element={<DocumentUpload />} />
           <Route path="/public/upload-payslip/:token" element={<PayslipUpload />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
-          <Route path="/debug" element={<DebugAuth />} />
-          
-          {/* Block SuperAdmin routes - Not available in SPC demo */}
-          <Route path="/super-admin/*" element={<Navigate to="/unauthorized" replace />} />
+          <Route
+            path="/change-password"
+            element={
+              <ProtectedRoute allowPasswordChange roles={['admin', 'company_admin', 'hr', 'manager', 'employee', 'superadmin']}>
+                <ForceChangePassword />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Super Admin */}
+          <Route
+            path="/super-admin"
+            element={
+              <ProtectedRoute roles={['superadmin']}>
+                <SuperAdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<SuperAdminDashboard />} />
+            <Route path="clients" element={<ClientManagement />} />
+            <Route path="packages" element={<PackageManagement />} />
+            <Route path="subscriptions" element={<SubscriptionManagement />} />
+            <Route path="invoices" element={<InvoiceCenter />} />
+            <Route path="revenue" element={<RevenueDashboard />} />
+            <Route path="billing-alerts" element={<BillingAlerts />} />
+            <Route path="roles" element={<RoleManagement />} />
+            <Route path="audit" element={<AuditLogs />} />
+            <Route path="analytics" element={<SuperAdminDashboard />} />
+            <Route path="config" element={<SuperAdminDashboard />} />
+            <Route path="data" element={<SuperAdminDashboard />} />
+          </Route>
           
           {/* Root redirect based on role */}
           <Route path="/" element={<HomeRedirect />} />
+
+          {/* Shared settings (header user menu) */}
+          <Route
+            path="/settings/*"
+            element={
+              <ProtectedRoute roles={['admin', 'company_admin', 'hr', 'manager', 'employee', 'superadmin']}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="profile" element={<SettingsProfile />} />
+            <Route path="security" element={<SettingsSecurity />} />
+            <Route path="preferences" element={<SettingsPreferences />} />
+            <Route path="theme" element={<ThemeSettings />} />
+          </Route>
 
           {/* HR SPC Routes */}
           <Route
@@ -200,15 +260,35 @@ function App() {
             />
           </Route>
 
-          {/* HR Routes */}
+          {/* Employee + HR self-service routes */}
           <Route
             path="/employee/*"
             element={
-              <ProtectedRoute roles={['hr', 'company_admin']}>
+              <ProtectedRoute roles={['employee', 'hr', 'admin', 'company_admin']}>
                 <EmployeeDashboardLayout />
               </ProtectedRoute>
             }
           >
+            <Route
+              index
+              element={<Navigate to="dashboard" replace />}
+            />
+            <Route
+              path="dashboard"
+              element={
+                <SPCProtectedRoute allowedRoles={['employee', 'hr', 'admin', 'company_admin']} requireProject={false}>
+                  <EmployeeDashboard />
+                </SPCProtectedRoute>
+              }
+            />
+            <Route
+              path="spc/employee"
+              element={
+                <SPCProtectedRoute allowedRoles={['employee']} requireProject={false}>
+                  <EmployeeDashboard />
+                </SPCProtectedRoute>
+              }
+            />
             <Route path="profile" element={<EmployeeProfile />} />
             <Route path="hr/candidate-pool" element={<HRCandidatePool />} />
             <Route path="hr/resume-search" element={<ResumeSearch />} />
@@ -254,25 +334,6 @@ function App() {
             <Route path=":id" element={<EmployeeDetail />} />
             <Route path="onboarding" element={<Onboarding />} />
             <Route path="offboarding" element={<Offboarding />} />
-          </Route>
-
-          {/* Employee SPC Routes */}
-          <Route
-            path="/employee/*"
-            element={
-              <ProtectedRoute roles={['employee', 'hr', 'admin', 'company_admin']}>
-                <EmployeeDashboardLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route 
-              path="spc/employee" 
-              element={
-                <SPCProtectedRoute allowedRoles={['employee']} requireProject={true}>
-                  <EmployeeDashboard user={undefined} />
-                </SPCProtectedRoute>
-              } 
-            />
           </Route>
 
           {/* Contract Management Routes */}

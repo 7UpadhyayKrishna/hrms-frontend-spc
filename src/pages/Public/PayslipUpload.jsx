@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Upload, CheckCircle, XCircle, AlertCircle, FileText, Loader2, DollarSign } from 'lucide-react';
 import { validateToken, uploadDocument, getUploadedDocuments } from '../../api/documentUpload';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const PayslipUpload = () => {
   const { token } = useParams();

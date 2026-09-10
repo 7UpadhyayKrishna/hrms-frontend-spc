@@ -24,7 +24,7 @@ import {
   XCircle
 } from 'lucide-react';
 import api from '../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../utils/toast';
 import AIInsights from '../components/AIInsights';
 
 const ViewApplicants = () => {

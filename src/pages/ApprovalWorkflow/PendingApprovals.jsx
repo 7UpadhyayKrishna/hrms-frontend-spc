@@ -5,7 +5,7 @@ import {
   UserCheck, Calendar, MessageSquare
 } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const PendingApprovals = () => {
   const [loading, setLoading] = useState(true);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Users, Calendar, Download, Filter, ChevronDown, Activity, Briefcase, Award, AlertCircle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import api from '../../api/axios';
 
 const TeamReports = () => {

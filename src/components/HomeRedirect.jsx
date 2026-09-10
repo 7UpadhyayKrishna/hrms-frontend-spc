@@ -10,6 +10,10 @@ const HomeRedirect = () => {
   }
   
   // Role-based redirection
+  if (user.role === 'superadmin') {
+    return <Navigate to="/super-admin/dashboard" replace />;
+  }
+
   if (user.role === 'hr') {
     return <Navigate to="/job-desk" replace />;
   }
@@ -20,6 +24,10 @@ const HomeRedirect = () => {
 
   if (user.role === 'manager') {
     return <Navigate to="/manager/dashboard" replace />;
+  }
+
+  if (user.role === 'employee') {
+    return <Navigate to="/employee/dashboard" replace />;
   }
 
   return <Navigate to="/unauthorized" replace />;

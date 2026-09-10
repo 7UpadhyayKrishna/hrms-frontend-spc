@@ -7,7 +7,7 @@ import {
   getComplianceLogs,
   exportAuditLogs 
 } from '../../api/superAdmin';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import {
   Shield,
   Download,

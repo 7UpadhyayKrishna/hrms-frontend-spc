@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart3, TrendingUp, Calendar, Users } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const AnalyticsDashboard = () => {
   const [loading, setLoading] = useState(true);

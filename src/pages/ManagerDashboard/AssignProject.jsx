@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import BottomNavigation from '../../components/BottomNavigation';
 import { config } from '../../config/api.config';
 import { ArrowLeft, Briefcase, Users, Calendar } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const AssignProject = () => {
   const navigate = useNavigate();

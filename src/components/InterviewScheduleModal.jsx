@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, Video, Users, Loader } from 'lucide-react';
 import api from '../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../utils/toast';
 
 const InterviewScheduleModal = ({ candidateId, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({

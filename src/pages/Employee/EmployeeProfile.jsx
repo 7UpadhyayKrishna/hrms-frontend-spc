@@ -15,7 +15,7 @@ import {
   Clock
 } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const EmployeeProfile = () => {
   const { user } = useAuth();
@@ -96,8 +96,7 @@ const EmployeeProfile = () => {
   };
 
   const handleEditProfile = () => {
-    // Navigate to edit profile page (can be implemented later)
-    toast.info('Edit profile functionality coming soon');
+    navigate('/settings/profile');
   };
 
   if (loading) {

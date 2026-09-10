@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Phone, Calendar, CheckCircle, XCircle, Clock, Loader, UserPlus } from 'lucide-react';
 import api from '../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../utils/toast';
 
 const HRCallModal = ({ candidateId, hrCall, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({

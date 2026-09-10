@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { X, Calendar, DollarSign, Package, Users, AlertCircle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const NewSubscriptionModal = ({ isOpen, onClose, onSuccess }) => {
   const { theme } = useTheme();

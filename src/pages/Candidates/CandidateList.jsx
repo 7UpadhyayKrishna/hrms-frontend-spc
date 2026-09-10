@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import { useAuth } from '../../context/AuthContext';
 import { Users, Plus, FileText, UploadCloud, Search, Clock, Filter, X, Loader2, Download, CheckCircle, AlertCircle, FileSpreadsheet, MoreVertical, ArrowRight, Calendar, Briefcase, UserCheck, FileSignature, XCircle } from 'lucide-react';
 import { getEmploymentTypeStyle, getEmploymentTypeLabel } from '../../utils/employmentTypeConstants';

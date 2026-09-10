@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { applyTheme, getTheme } from '../config/themes';
 import { updateThemePreference } from '../api/user';
-import toast from 'react-hot-toast';
+import toast from '../utils/toast';
 
 const ThemeContext = createContext({ 
   theme: 'dark', 

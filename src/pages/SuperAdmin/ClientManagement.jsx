@@ -23,7 +23,7 @@ import {
   Briefcase
 } from 'lucide-react';
 import { getClients, updateClientStatus, deleteClient } from '../../api/superAdmin';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import ClientForm from '../../components/ClientForm';
 import ClientPackageManager from '../../components/SuperAdmin/ClientPackageManager';
 

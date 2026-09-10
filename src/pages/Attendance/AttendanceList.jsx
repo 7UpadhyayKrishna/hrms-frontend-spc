@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Calendar } from 'lucide-react';
 import api from '../../api/axios';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 
 const AttendanceList = () => {
   const [attendance, setAttendance] = useState([]);
